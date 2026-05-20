@@ -6,13 +6,13 @@
 
 ---
 
-## ADR-001 | Next.js 15 App Router
+## ADR-001 | Next.js App Router (version)
 
-- **Date:** Day 0
-- **Status:** Accepted
-- **Context:** Need React framework with SSR, API routes, deployable to Vercel
-- **Decision:** Next.js 15 App Router (not Pages Router)
-- **Consequences:** Server Components reduce client bundle. Less mature ecosystem than Pages. Claude Code generates better App Router code.
+- **Date:** Day 0 (proposed), Day 1 (revised)
+- **Status:** Accepted (revised — Next.js 16.2.6 in lieu of 15)
+- **Context:** create-next-app@latest installs current stable
+- **Decision:** Use Next.js 16.x stable
+- **Consequences:** Same App Router API; minor CLI bug (DEV-002); no spec impact
 
 ## ADR-002 | Supabase over Firebase
 

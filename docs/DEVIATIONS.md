@@ -16,7 +16,23 @@ Track every drift from baseline specs (`01-PRD.md` through `07-Implementation-Ro
 
 ## Open
 
-_None — Day 0._
+## DEV-001 | Next.js 16 instead of 15
+
+- Detected: Day 1 by Code during scaffold
+- Baseline doc: 02-Architecture.md §1 (Frontend row)
+- Actual: create-next-app@latest installed Next.js 16.2.6
+- Impact: None — App Router API surface unchanged; all spec features supported
+- Resolution: accept-as-baseline
+- Status: ⚪
+
+## DEV-002 | `next lint` swapped for `eslint .`
+
+- Detected: Day 1 by Code
+- Baseline doc: implied by Next.js convention
+- Actual: `next lint` CLI broken in Next.js 16 (directory parsing bug); using `eslint .` directly
+- Impact: None functional; lint script behavior identical
+- Resolution: accept-as-baseline (revisit if Next.js patches)
+- Status: ⚪
 
 ---
 
