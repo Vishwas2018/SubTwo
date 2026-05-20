@@ -22,6 +22,7 @@
 | TD-006 | No public plan sharing                                     | Low      | Privacy default                                                          | v2                                                  |
 | TD-007 | Vercel CLI TLS workaround (NODE_OPTIONS='--use-system-ca') | Low      | Corporate cert chain not in Node bundle                                  | Document in runbook; consider removing post-Phase 4 |
 | TD-008 | OAuth tokens stored as plain TEXT, not encrypted           | Medium   | Supabase Vault requires Phase 3 setup; no integrations active in Phase 1 | Phase 3 (before P5-01 Strava OAuth)                 |
+| TD-009 | In-memory signup rate limit (lost on cold start, not multi-region) | Medium | Phase 1 minimal; full Upstash in P3-01 | Phase 3 (P3-01) |
 
 ---
 

@@ -128,6 +128,29 @@
 
 ---
 
+## Day 6 — Phase 1 / Invite Signup + Admin Guard
+
+**Tasks completed:**
+
+- P1-11: app/(auth)/signup/page.tsx — invite code field + email, posts to /api/auth/signup; /api/auth/signup/route.ts validates code via validate_invite_code RPC (atomic, FOR UPDATE), sends magic link via signInWithOtp; in-memory IP rate limit (5/hr)
+- P1-12: app/(admin)/admin/page.tsx placeholder protected by requireAdmin(); /auth/callback/route.ts exchanges PKCE code for session; /api/auth/login and /api/auth/logout routes; shadcn/ui components (button, input, label, card, alert)
+
+**Tasks incomplete:** none
+**Defects logged:** none
+**Deviations logged:** none (DEV-004 already logged Day 5)
+**Tech debt added:** TD-009 (in-memory rate limit)
+**ADRs:** none
+
+**Test status:** unit 264/264 · integration 6/6 · coverage 100% all metrics · build pass · lint pass · typecheck pass
+**Commit:** a7ab636
+
+**Manual E2E:** ⏸️ Awaiting user walkthrough (STEP 9 — insert ADMIN001 invite code + test signup flow)
+
+**Blockers:** none
+**Next:** Day 7 — CI pipeline (GitHub Actions: lint + typecheck + tests) — P1-13
+
+---
+
 ## Template
 
 ```
