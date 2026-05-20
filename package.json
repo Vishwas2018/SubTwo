@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test": "cross-env NODE_OPTIONS=--use-system-ca vitest run",
+    "test:watch": "cross-env NODE_OPTIONS=--use-system-ca vitest",
+    "test:coverage": "cross-env NODE_OPTIONS=--use-system-ca vitest run --coverage"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -20,6 +20,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.106.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -28,6 +29,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.2",
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "eslint-config-prettier": "^10.1.8",
