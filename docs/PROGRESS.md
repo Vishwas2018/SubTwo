@@ -107,6 +107,27 @@
 
 ---
 
+## Day 5 — Phase 1 / Zod Schemas + Supabase Auth Wiring
+
+**Tasks completed:**
+
+- P1-09: lib/schemas/{wizard,plan,run,checkin,index}.ts — Zod schemas with discriminated union on experience_level, refinements (future date, stitch_severity), string sanitization; exported TypeScript types; 92 new tests, 100% coverage
+- P1-10: lib/supabase/{client,server,middleware}.ts — browser/server/service clients via @supabase/ssr; proxy.ts route protection + auth redirects; lib/auth/session.ts helpers (getCurrentUser, getCurrentProfile, requireUser, requireAdmin); types/database.types.ts generated (989 lines, all 15 tables)
+
+**Tasks incomplete:** none
+**Defects logged:** none
+**Deviations logged:** DEV-004 (middleware.ts → proxy.ts per Next.js 16 convention)
+**Tech debt added:** none
+**ADRs:** none
+
+**Test status:** unit 250/250 · integration 5/5 · coverage 100% all metrics · build pass · lint pass · typecheck pass
+**Commit:** ca44092
+
+**Blockers:** none
+**Next:** Day 6 — Signup with invite code (P1-11) + Admin role + /admin route guard (P1-12)
+
+---
+
 ## Template
 
 ```

@@ -43,6 +43,15 @@ Track every drift from baseline specs (`01-PRD.md` through `07-Implementation-Ro
 - Resolution: accept-as-baseline; local stack setup deferred to Day 7 CI pipeline work
 - Status: 🟡
 
+## DEV-004 | `middleware.ts` renamed to `proxy.ts` (Next.js 16 convention)
+
+- Detected: Day 5 by Code during build
+- Baseline doc: Day 5 execution prompt (STEP 5 — Create middleware.ts at repo root)
+- Actual: Next.js 16 deprecated the `middleware` file convention in favour of `proxy`. Build emitted deprecation warning with `middleware.ts`; renamed to `proxy.ts` with named `proxy` export.
+- Impact: None functional — route protection and redirect logic identical; build now clean
+- Resolution: accept-as-baseline; all future proxy/middleware references use `proxy.ts`
+- Status: ⚪
+
 ---
 
 ## Resolved / Accepted
