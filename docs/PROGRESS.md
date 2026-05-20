@@ -66,6 +66,27 @@
 
 ---
 
+## Day 3 — Phase 1 / Helper Functions + Pace Math
+
+**Tasks completed:**
+
+- P1-05: Migration 017 (9 indexes) + Migration 018 (5 helper functions: validate_invite_code, check_ai_quota, compute_checkpoint_verdict, handle_new_user, match_run_to_planned_session)
+- P1-05b: Migration 019 — promote_initial_admin trigger (jvishu21@gmail.com auto-promoted on signup)
+- P1-06: lib/pace-zones.ts — Riegel formula, VDOT-style zone derivation, 100% coverage; 64 unit tests
+
+**Tasks incomplete:** none
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 59/59 · integration 5/5 · coverage lib/pace-zones.ts 100% · lint pass · typecheck pass
+**Commit:** f78b880
+
+**Blockers:** none
+**Next:** Day 4 — lib/plan-validators.ts (10% rule, deload, pace consistency) + lib/checkpoint-logic.ts
+
+---
+
 ## Template
 
 ```
