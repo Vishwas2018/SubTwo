@@ -144,7 +144,23 @@
 **Test status:** unit 264/264 · integration 6/6 · coverage 100% all metrics · build pass · lint pass · typecheck pass
 **Commit:** a7ab636
 
-**Manual E2E:** ⏸️ Awaiting user walkthrough (STEP 9 — insert ADMIN001 invite code + test signup flow)
+**Manual E2E gate:** ✅ ALL STEPS PASSED
+
+| Step | Result |
+|------|--------|
+| ADMIN001 invite code inserted | ✅ use_count=0 confirmed |
+| /api/auth/signup → 201 | ✅ invite consumed (use_count→1) |
+| profiles.is_admin=true | ✅ promote_initial_admin trigger fired |
+| /dashboard renders after login | ✅ user confirmed |
+| /admin renders for admin | ✅ user confirmed |
+| /admin redirects incognito → /login | ✅ user confirmed |
+| Bad code BADCODE1 → 400 | ✅ automated |
+| Exhausted ADMIN001 → 400 | ✅ automated |
+
+**Defects found and fixed during gate:** DEF-001, DEF-002, DEF-003 (all S1/S2, all fixed in commit b1b534f)
+- DEF-001: `/login` matched `/log` prefix → infinite redirect (S1, fixed)
+- DEF-002: callback session cookies not attached to redirect response (S2, fixed)
+- DEF-003: middleware dropped refreshed tokens on redirect (S2, fixed)
 
 **Blockers:** none
 **Next:** Day 7 — CI pipeline (GitHub Actions: lint + typecheck + tests) — P1-13
