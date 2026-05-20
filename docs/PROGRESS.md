@@ -87,6 +87,26 @@
 
 ---
 
+## Day 4 — Phase 1 / Plan Validators + Checkpoint Logic
+
+**Tasks completed:**
+
+- P1-07: lib/plan-validators.ts — 8 pure validation rules (structural integrity, volume progression, deload cadence, pace consistency, distance bounds, recovery structure, race day/taper, experience level) + validatePlan master validator; exported threshold constants
+- P1-08: lib/checkpoint-logic.ts — computeDeviation, computeVerdict (green/amber/red matching SQL), recommendedAction, evaluateCheckpoint, deriveCheckpointTarget (Riegel), suggestCheckpoints (3 points at 25/50/80%)
+
+**Tasks incomplete:** none
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 158/158 · integration 5/5 · coverage 100% statements/branches/functions/lines · lint pass · typecheck pass
+**Commit:** 8dd198b
+
+**Blockers:** none
+**Next:** Day 5 — Zod schemas (WizardInput, GeneratedPlan, RunInput, CheckinInput) + Supabase auth wiring + middleware + session helpers
+
+---
+
 ## Template
 
 ```

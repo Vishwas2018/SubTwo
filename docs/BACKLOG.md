@@ -2,7 +2,7 @@
 
 ## SubTwo — Product Backlog
 
-**Owner:** [CLAUDE WEB - OPUS 4.7] | **Last updated:** Day 0
+**Owner:** [CLAUDE WEB - OPUS 4.7] | **Last updated:** Day 4
 
 ---
 
@@ -23,8 +23,8 @@
 | P1-05  | Migration 017–018: indexes + helper functions                             | 🟢     | Day 3          |
 | P1-05b | Migration 019: admin seed trigger (jvishu21@gmail.com)                    | 🟢     | Day 3          |
 | P1-06  | `lib/pace-zones.ts` + 20+ unit tests (100% coverage)                      | 🟢     | Day 3          |
-| P1-07  | `lib/plan-validators.ts` (10% rule, deload, pace consistency) + 15+ tests | 🔵     | Day 4          |
-| P1-08  | `lib/checkpoint-logic.ts` + boundary tests                                | 🔵     | Day 4          |
+| P1-07  | `lib/plan-validators.ts` (10% rule, deload, pace consistency) + 15+ tests | 🟢     | Day 4          |
+| P1-08  | `lib/checkpoint-logic.ts` + boundary tests                                | 🟢     | Day 4          |
 | P1-09  | Zod schemas (WizardInput, GeneratedPlan, RunInput, CheckinInput)          | 🔵     | Day 5          |
 | P1-10  | Supabase auth wiring + middleware + session helpers                       | 🔵     | Day 5          |
 | P1-11  | Signup with invite code (atomic validation)                               | 🔵     | Day 6          |
