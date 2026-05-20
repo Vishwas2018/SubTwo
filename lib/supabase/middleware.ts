@@ -44,14 +44,26 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => path.startsWith(prefix));
+  // Match prefix as a complete path segment: /log must not match /login
+  const isProtected = PROTECTED_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(prefix + '/'),
+  );
 
   if (isProtected && !user) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
+    // Copy any refreshed session cookies onto the redirect so they reach the browser
+    response.cookies.getAll().forEach(({ name, value, ...rest }) => {
+      redirectResponse.cookies.set(name, value, rest);
+    });
+    return redirectResponse;
   }
 
   if (user && (path === '/login' || path === '/signup')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url));
+    response.cookies.getAll().forEach(({ name, value, ...rest }) => {
+      redirectResponse.cookies.set(name, value, rest);
+    });
+    return redirectResponse;
   }
 
   return response;
