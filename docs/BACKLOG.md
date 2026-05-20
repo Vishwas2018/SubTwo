@@ -14,22 +14,22 @@
 
 ## Phase 1 — Foundation & Core Logic
 
-| ID    | Task                                                                      | Status | Notes               |
-| ----- | ------------------------------------------------------------------------- | ------ | ------------------- |
-| P1-01 | Next.js 15 + TS + Tailwind + shadcn init, GitHub push, Vercel deploy      | 🔵     | Day 1               |
-| P1-02 | Supabase project (ap-southeast-2) + CLI + migrations folder               | 🔵     | Day 1               |
-| P1-03 | Migrations 001–015 (all 15 tables)                                        | 🔵     | Day 2               |
-| P1-04 | Migration 016: RLS policies + cross-user test                             | 🔵     | Day 2               |
-| P1-05 | Migration 017–018: indexes + helper functions                             | 🔵     | Day 3               |
-| P1-06 | `lib/pace-zones.ts` + 20+ unit tests (100% coverage)                      | 🔵     | Day 3               |
-| P1-07 | `lib/plan-validators.ts` (10% rule, deload, pace consistency) + 15+ tests | 🔵     | Day 4               |
-| P1-08 | `lib/checkpoint-logic.ts` + boundary tests                                | 🔵     | Day 4               |
-| P1-09 | Zod schemas (WizardInput, GeneratedPlan, RunInput, CheckinInput)          | 🔵     | Day 5               |
-| P1-10 | Supabase auth wiring + middleware + session helpers                       | 🔵     | Day 5               |
-| P1-11 | Signup with invite code (atomic validation)                               | 🔵     | Day 6               |
-| P1-12 | Admin role + `/admin` route guard + seed admin                            | 🔵     | Day 6               |
-| P1-13 | CI pipeline (GitHub Actions: lint + typecheck + tests)                    | 🔵     | Day 7               |
-| P1-14 | Control documents initialized                                             | 🟡     | Day 1 (in progress) |
+| ID    | Task                                                                      | Status | Notes          |
+| ----- | ------------------------------------------------------------------------- | ------ | -------------- |
+| P1-01 | Next.js 15 + TS + Tailwind + shadcn init, GitHub push, Vercel deploy      | 🟢     | Day 1          |
+| P1-02 | Supabase project (ap-southeast-2) + CLI + migrations folder               | 🟢     | Day 1          |
+| P1-03 | Migrations 001–015 (all 15 tables)                                        | 🔵     | Day 2          |
+| P1-04 | Migration 016: RLS policies + cross-user test                             | 🔵     | Day 2          |
+| P1-05 | Migration 017–018: indexes + helper functions                             | 🔵     | Day 3          |
+| P1-06 | `lib/pace-zones.ts` + 20+ unit tests (100% coverage)                      | 🔵     | Day 3          |
+| P1-07 | `lib/plan-validators.ts` (10% rule, deload, pace consistency) + 15+ tests | 🔵     | Day 4          |
+| P1-08 | `lib/checkpoint-logic.ts` + boundary tests                                | 🔵     | Day 4          |
+| P1-09 | Zod schemas (WizardInput, GeneratedPlan, RunInput, CheckinInput)          | 🔵     | Day 5          |
+| P1-10 | Supabase auth wiring + middleware + session helpers                       | 🔵     | Day 5          |
+| P1-11 | Signup with invite code (atomic validation)                               | 🔵     | Day 6          |
+| P1-12 | Admin role + `/admin` route guard + seed admin                            | 🔵     | Day 6          |
+| P1-13 | CI pipeline (GitHub Actions: lint + typecheck + tests)                    | 🔵     | Day 7          |
+| P1-14 | Control documents initialized                                             | 🟢     | Day 1 complete |
 
 ## Phase 2 — Feature Integration
 
