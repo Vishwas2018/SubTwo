@@ -1,4 +1,5 @@
 # PROGRESS
+
 ## SubTwo — Daily Completion Log
 
 **Owner:** [CLAUDE WEB - OPUS 4.7] appends end of each cycle
@@ -8,6 +9,7 @@
 ## Day 0 — Initialization (Today)
 
 **Deliverables:**
+
 - 7 spec docs finalized (01–07)
 - 7 control docs scaffolded (BACKLOG, DEFECTS, DEVIATIONS, PROGRESS, TECH_DEBT, ADRs, CCTV_PROTOCOL)
 - Repo skeleton (README, .gitignore)

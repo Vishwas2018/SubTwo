@@ -1,4 +1,5 @@
 # Architecture
+
 ## SubTwo
 
 **Version:** 1.0 (final)
@@ -7,21 +8,21 @@
 
 ## 1. Stack
 
-| Layer | Technology | Why |
-|---|---|---|
-| Frontend | Next.js 15 (App Router) + React 19 + TypeScript | SSR/RSC, type safety |
-| Styling | Tailwind CSS + shadcn/ui | Fast UI, accessible defaults |
-| Backend | Next.js API routes (serverless) | Single codebase |
-| Database | Supabase (Postgres) | Free tier, built-in auth, RLS |
-| Auth | Supabase Auth (magic link) | No passwords |
-| Storage | Supabase Storage | Future avatars/exports |
-| AI | Anthropic Claude Sonnet 4 | Plan generation |
-| Hosting | Vercel | Auto-deploy from GitHub |
-| Cron | Vercel Cron | Nightly adjustments, Garmin sync |
-| Email | Resend | Coach invites, notifications |
-| Source | GitHub (Vishwas2018/SubTwo) | |
-| Monitoring | Vercel Analytics + Sentry (free) | Errors, uptime |
-| Package mgr | pnpm | |
+| Layer       | Technology                                      | Why                              |
+| ----------- | ----------------------------------------------- | -------------------------------- |
+| Frontend    | Next.js 15 (App Router) + React 19 + TypeScript | SSR/RSC, type safety             |
+| Styling     | Tailwind CSS + shadcn/ui                        | Fast UI, accessible defaults     |
+| Backend     | Next.js API routes (serverless)                 | Single codebase                  |
+| Database    | Supabase (Postgres)                             | Free tier, built-in auth, RLS    |
+| Auth        | Supabase Auth (magic link)                      | No passwords                     |
+| Storage     | Supabase Storage                                | Future avatars/exports           |
+| AI          | Anthropic Claude Sonnet 4                       | Plan generation                  |
+| Hosting     | Vercel                                          | Auto-deploy from GitHub          |
+| Cron        | Vercel Cron                                     | Nightly adjustments, Garmin sync |
+| Email       | Resend                                          | Coach invites, notifications     |
+| Source      | GitHub (Vishwas2018/SubTwo)                     |                                  |
+| Monitoring  | Vercel Analytics + Sentry (free)                | Errors, uptime                   |
+| Package mgr | pnpm                                            |                                  |
 
 **Region:** Supabase `ap-southeast-2` (Sydney) for AU latency.
 
@@ -43,16 +44,16 @@ VERCEL EDGE
 
 ## 3. Key Architectural Decisions
 
-| # | Decision | Rationale |
-|---|---|---|
-| ADR-001 | Next.js App Router | Server Components, less client JS |
-| ADR-002 | Supabase over Firebase | Postgres + RLS for coach sharing |
-| ADR-003 | Monolith, no separate API | Single codebase, serverless scales |
-| ADR-004 | Plan stored as data, not code | Per-user, AI-generated |
-| ADR-005 | Strava webhook + Garmin polling | Strava pushes; Garmin doesn't |
-| ADR-006 | Sonnet 4 (not Haiku) | Plan quality > $0.08 savings |
-| ADR-007 | Invite-gated signup | Cost control + curation |
-| ADR-008 | Rule-based adjustments (not AI) | Deterministic, free, testable |
+| #       | Decision                        | Rationale                          |
+| ------- | ------------------------------- | ---------------------------------- |
+| ADR-001 | Next.js App Router              | Server Components, less client JS  |
+| ADR-002 | Supabase over Firebase          | Postgres + RLS for coach sharing   |
+| ADR-003 | Monolith, no separate API       | Single codebase, serverless scales |
+| ADR-004 | Plan stored as data, not code   | Per-user, AI-generated             |
+| ADR-005 | Strava webhook + Garmin polling | Strava pushes; Garmin doesn't      |
+| ADR-006 | Sonnet 4 (not Haiku)            | Plan quality > $0.08 savings       |
+| ADR-007 | Invite-gated signup             | Cost control + curation            |
+| ADR-008 | Rule-based adjustments (not AI) | Deterministic, free, testable      |
 
 ## 4. Folder Structure
 
@@ -89,6 +90,7 @@ SubTwo/
 ## 5. Data Flow Examples
 
 **Plan generation:**
+
 ```
 Wizard → POST /api/plans/generate
   → validate invite + quota
@@ -102,6 +104,7 @@ Wizard → POST /api/plans/generate
 ```
 
 **Strava webhook:**
+
 ```
 Strava → POST /api/webhooks/strava
   → verify HMAC signature
@@ -112,6 +115,7 @@ Strava → POST /api/webhooks/strava
 ```
 
 **Nightly adjustment cron:**
+
 ```
 Vercel Cron → POST /api/cron/adjustments
   → for each active plan:
@@ -131,12 +135,12 @@ Vercel Cron → POST /api/cron/adjustments
 
 ## 7. Cost Projection
 
-| Users | Monthly cost |
-|---|---|
-| 1 (you) | ~$0.10–0.50 (Anthropic) |
-| 5 friends | ~$2–5 |
-| 50 | ~$20–40 |
-| 500 | ~$150–300 (revisit pricing) |
+| Users     | Monthly cost                |
+| --------- | --------------------------- |
+| 1 (you)   | ~$0.10–0.50 (Anthropic)     |
+| 5 friends | ~$2–5                       |
+| 50        | ~$20–40                     |
+| 500       | ~$150–300 (revisit pricing) |
 
 Vercel + Supabase + Resend stay free at this scale.
 

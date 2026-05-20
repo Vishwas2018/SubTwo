@@ -1,4 +1,5 @@
 # UI/UX & Screen Map
+
 ## SubTwo
 
 **Version:** 1.0 (final) | **Design system:** shadcn/ui + Tailwind | **Style:** Clean, data-dense, calm
@@ -73,26 +74,33 @@ Client validates format; server validates existence + atomic increment.
 ## 5. Wizard (7 steps)
 
 ### Step 1 — Race basics
+
 Distance (km, freeform + quick presets), date, name (optional)
 
 ### Step 2 — Experience level
+
 Beginner / Intermediate / Advanced (radios) — drives Step 3 branching
 
 ### Step 3 — Current fitness (branches)
+
 **Beginner:** weekly km, longest recent run, can run 5K without stopping?
 **Intermediate:** weekly km, days/week, recent race (distance + time + date)
 **Advanced:** weekly km, peak weekly km, recent race, est. threshold pace, years running
 
 ### Step 4 — Goal
+
 Specific target time OR "AI suggest realistic range"
 
 ### Step 5 — Constraints
+
 Days/week, preferred long-run day, injury history (free text, 500 char cap), other notes
 
 ### Step 6 — Equipment (optional)
+
 Shoes, fuel/gel, weight
 
 ### Step 7 — Generating (loading)
+
 Streamed progress: analysing fitness → designing periodisation → calculating zones → placing checkpoints (15–30s)
 
 ## 6. Review screen
@@ -178,6 +186,7 @@ Tabs: Active / Resolved. Banner if any niggle 5+ days: "Consider seeing a physio
 ## 15. Settings
 
 Tabs:
+
 - **Profile** — display name, timezone, race date, goal
 - **Integrations** — Strava/Garmin connect, last sync
 - **Sharing** — current coach, [Invite coach] modal, pending invites
@@ -194,40 +203,44 @@ Identical UI with banner: "Viewing as coach · read-only". Comment forms enabled
 ## 18. Admin
 
 ### /admin
+
 Users · pending invites · monthly AI spend · generations today · quick links
 
 ### /admin/invites
+
 Table: code, uses, expires, note, actions. [+ New Code] modal.
 
 ### /admin/users
+
 Table: email, signup, plan status, last activity, AI gens used, [impersonate/suspend/delete].
 
 ### /admin/ai-usage
+
 Month-to-date $, gen count, avg cost, daily charts, top users.
 
 ## 19. Empty States
 
-| Screen | Copy |
-|---|---|
-| No plan | "Welcome! Let's build your plan. [Start wizard]" |
-| No runs | "No runs logged yet. Connect Strava or log manually." |
-| No niggles | "No niggles. Keep it that way." 🎉 |
-| Quota exhausted | "All 10 generations used. Contact admin." |
-| Invalid invite | "That code doesn't work. Check with whoever invited you." |
-| AI gen failed | "Couldn't generate. Tap retry or contact support." |
+| Screen          | Copy                                                      |
+| --------------- | --------------------------------------------------------- |
+| No plan         | "Welcome! Let's build your plan. [Start wizard]"          |
+| No runs         | "No runs logged yet. Connect Strava or log manually."     |
+| No niggles      | "No niggles. Keep it that way." 🎉                        |
+| Quota exhausted | "All 10 generations used. Contact admin."                 |
+| Invalid invite  | "That code doesn't work. Check with whoever invited you." |
+| AI gen failed   | "Couldn't generate. Tap retry or contact support."        |
 
 ## 20. Visual Tokens
 
-| Token | Value | Use |
-|---|---|---|
-| --bg | slate-50/950 | Page bg |
-| --card | white/slate-900 | Cards |
-| --text | slate-900/100 | Body |
-| --muted | slate-500 | Secondary |
-| --accent | emerald-600 | Primary CTAs |
-| --warn | amber-500 | Caution |
-| --danger | red-600 | Errors |
-| Font | Inter (sans), JetBrains Mono (numbers) | |
+| Token    | Value                                  | Use          |
+| -------- | -------------------------------------- | ------------ |
+| --bg     | slate-50/950                           | Page bg      |
+| --card   | white/slate-900                        | Cards        |
+| --text   | slate-900/100                          | Body         |
+| --muted  | slate-500                              | Secondary    |
+| --accent | emerald-600                            | Primary CTAs |
+| --warn   | amber-500                              | Caution      |
+| --danger | red-600                                | Errors       |
+| Font     | Inter (sans), JetBrains Mono (numbers) |              |
 
 Dark mode: system default, toggle in settings.
 

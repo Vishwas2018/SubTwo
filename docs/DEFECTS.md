@@ -1,4 +1,5 @@
 # DEFECTS
+
 ## SubTwo — Bug & Test Failure Log
 
 **Owner:** [CLAUDE CODE - SONNET 4.6] reports → [CLAUDE WEB - OPUS 4.7] reviews
@@ -6,9 +7,11 @@
 ---
 
 ## Status legend
+
 🔴 open · 🟡 in-progress · 🟢 fixed · ⚪ wontfix
 
 ## Severity
+
 **S1** prod broken / data loss · **S2** feature broken · **S3** workaround exists · **S4** cosmetic
 
 ---

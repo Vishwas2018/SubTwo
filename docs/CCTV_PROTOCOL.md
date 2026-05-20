@@ -1,4 +1,5 @@
 # CCTV Protocol
+
 ## SubTwo — Structured Dual-Layer Development
 
 **Canonical reference. Followed every working day.**
@@ -8,6 +9,7 @@
 ## Roles
 
 ### [CLAUDE WEB - OPUS 4.7] — Strategy & Audit Layer
+
 - Product strategist, architect, tech lead, engineering manager
 - Reviews daily audit reports, identifies gaps
 - Defines next day's priorities
@@ -16,6 +18,7 @@
 - **Never writes implementation code**
 
 ### [CLAUDE CODE - SONNET 4.6] — Implementation Layer
+
 - Execution engine (developer)
 - Reads repo state at start of each cycle
 - Audits prior work, reports completion/breakage
@@ -29,24 +32,28 @@
 ## Daily Workflow (4 phases, sequential)
 
 ### Step 1 — Repository Audit ([CLAUDE CODE - SONNET 4.6])
+
 - Scan repo state
 - Identify what was built/modified/broken last session
 - Generate CCTV Audit Report
 - Flag missing components, failing tests, drift, uncommitted work
 
 ### Step 2 — Strategic Review ([CLAUDE WEB - OPUS 4.7])
+
 - Ingest audit report
 - Assess against phase plan
 - Update control documents
 - Produce Daily Execution Prompt: build / fix / refactor / validate / **NOT do**
 
 ### Step 3 — Execution ([CLAUDE CODE - SONNET 4.6])
+
 - Follow prompt exactly
 - Small verifiable increments (≤2h units)
 - Run lint, typecheck, tests locally
 - Pause at verification gates
 
 ### Step 4 — Validation & Commit
+
 - Explicit confirmation requested before commit
 - Only validated work committed
 - Regressions/drift logged immediately
@@ -55,14 +62,14 @@
 
 ## Control Documents (`/docs/`)
 
-| File | Purpose | Update Trigger |
-|---|---|---|
-| BACKLOG.md | Unbuilt features, stories | After planning |
-| DEFECTS.md | Bugs, test failures | After audit/execution |
-| DEVIATIONS.md | Drift from architecture/specs | When scope/design shifts |
-| PROGRESS.md | Daily completion log | End of each cycle |
-| TECH_DEBT.md | Shortcuts, pending refactors | After implementation |
-| ADRs.md | Architecture Decision Records | On major technical choice |
+| File          | Purpose                       | Update Trigger            |
+| ------------- | ----------------------------- | ------------------------- |
+| BACKLOG.md    | Unbuilt features, stories     | After planning            |
+| DEFECTS.md    | Bugs, test failures           | After audit/execution     |
+| DEVIATIONS.md | Drift from architecture/specs | When scope/design shifts  |
+| PROGRESS.md   | Daily completion log          | End of each cycle         |
+| TECH_DEBT.md  | Shortcuts, pending refactors  | After implementation      |
+| ADRs.md       | Architecture Decision Records | On major technical choice |
 
 **Rules:** Update daily. Never delete; append or version.
 

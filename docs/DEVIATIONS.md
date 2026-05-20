@@ -1,4 +1,5 @@
 # DEVIATIONS
+
 ## SubTwo — Architecture/Spec Drift Log
 
 **Owner:** [CLAUDE WEB - OPUS 4.7]
@@ -8,6 +9,7 @@
 Track every drift from baseline specs (`01-PRD.md` through `07-Implementation-Roadmap.md`). Don't delete entries; mark resolved or accepted.
 
 ## Status legend
+
 🔴 unresolved · 🟡 under review · 🟢 resolved · ⚪ accepted as new baseline
 
 ---
