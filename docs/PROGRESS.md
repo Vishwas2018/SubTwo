@@ -167,6 +167,51 @@
 
 ---
 
+## Day 7 — Phase 1 / CI Pipeline + Phase Exit Audit
+
+**Tasks completed:**
+
+- P1-13: `.github/workflows/ci.yml` — CI on push/PR to main; jobs: typecheck → lint → test:unit → build; build uses NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY secrets (public-safe; RLS protects data)
+- P1-13: `test:unit` / `test:integration` scripts added to package.json; integration tests gated behind `describe.skipIf(!SUPABASE_AVAILABLE)` in both rls.test.ts and signup.test.ts
+- P1-13: GitHub secrets set (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY); branch protection enabled on main requiring `verify` job
+- PHASE-1-EXIT: All 8 exit criteria verified (see below)
+
+**Tasks incomplete:** none
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 250/250 · integration 6/6 (local) · coverage 100% all metrics · lint pass · typecheck pass · CI green
+**Commit:** f4d27f7
+**CI run:** https://github.com/Vishwas2018/SubTwo/actions/runs/26195704191 — ✅ green
+
+---
+
+## Phase 1 — COMPLETE
+
+**Summary:** 7 days · P1-01 through P1-13 all 🟢 (P1-14 control docs ongoing)
+
+| Exit Criterion | Status | Notes |
+|---|---|---|
+| Migrations apply on clean DB (remote) | ✅ | Verified Day 2 against remote Postgres; local Docker unavailable (DEV-003) |
+| RLS verified (A can't read B) | ✅ | 5 integration tests; cross-user isolation confirmed |
+| 100% coverage: pace-zones, plan-validators, checkpoint-logic | ✅ | 100% statements/branches/functions/lines |
+| Invite signup works; concurrent single-use prevented | ✅ | FOR UPDATE lock; 6 integration tests; manual E2E gate Day 6 |
+| Admin route blocked for non-admin | ✅ | requireAdmin() + manual E2E gate Day 6 |
+| CI green on main | ✅ | GitHub Actions run 26195704191; branch protection active |
+| TS strict, zero `any` in source | ✅ | Grepped lib/, app/, components/ — no matches |
+| No console.log in source | ✅ | Grepped lib/, app/, components/ — no matches |
+
+**Tests:** unit 250 · integration 6 · total 256
+**Defects found/fixed:** DEF-001, DEF-002, DEF-003
+**Deviations:** DEV-001 (Next.js 16), DEV-002 (eslint direct), DEV-003 (no local Docker), DEV-004 (proxy.ts)
+**Tech debt outstanding:** TD-007, TD-008, TD-009
+
+**Blockers:** none
+**Next:** Phase 2 kickoff — [CLAUDE WEB - OPUS 4.7] to plan wizard, Anthropic integration
+
+---
+
 ## Template
 
 ```
