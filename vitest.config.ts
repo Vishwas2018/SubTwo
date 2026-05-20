@@ -12,6 +12,8 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       include: ['lib/**/*.ts'],
+      // lib/supabase and lib/auth require Next.js runtime — excluded from unit coverage
+      exclude: ['lib/supabase/**', 'lib/auth/**'],
       thresholds: { lines: 100, functions: 100, branches: 90, statements: 100 },
     },
   },
