@@ -34,6 +34,15 @@ Track every drift from baseline specs (`01-PRD.md` through `07-Implementation-Ro
 - Resolution: accept-as-baseline (revisit if Next.js patches)
 - Status: ⚪
 
+## DEV-003 | Local Supabase stack unavailable (Docker pipe blocked)
+
+- Detected: Day 2 by Code during migration testing
+- Baseline doc: Day 2 execution prompt (GATE 2 — `supabase db reset --local`)
+- Actual: npm-bundled Supabase CLI binary cannot access `\\.\pipe\dockerDesktopLinuxEngine` on this Windows environment; `supabase start` fails
+- Impact: Low — migrations validated against remote Postgres instead; RLS tests run against remote project
+- Resolution: accept-as-baseline; local stack setup deferred to Day 7 CI pipeline work
+- Status: 🟡
+
 ---
 
 ## Resolved / Accepted

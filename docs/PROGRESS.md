@@ -45,6 +45,27 @@
 
 ---
 
+## Day 2 — Phase 1 / Supabase + Schema
+
+**Tasks completed:**
+
+- P1-02: Supabase project (subtwo, ap-southeast-2, ref: jyxbichqqvaojryvvcce), creds in Vercel
+- P1-03: Migrations 001–015 (all 15 tables) applied remotely — validated against real Postgres
+- P1-04: Migration 016 — RLS policies on all tables, verified by 5/5 integration tests
+
+**Tasks incomplete:** none
+**Defects logged:** none
+**Deviations logged:** DEV-003 (local Supabase Docker pipe blocked on Windows; tests run against remote)
+**Tech debt added:** TD-008 (token encryption deferred)
+
+**Test status:** unit 1/1 · integration 5/5 · lint pass · typecheck pass
+**Commit:** 0686c72
+
+**Blockers:** none
+**Next:** Day 3 — helper functions (validate_invite_code, check_ai_quota, compute_checkpoint_verdict) + indexes + admin seed
+
+---
+
 ## Template
 
 ```
