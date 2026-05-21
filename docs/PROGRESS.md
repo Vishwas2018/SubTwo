@@ -306,6 +306,49 @@
 
 ---
 
+## Day 11 — Phase 2 / Review Screen + Live E2E Gate
+
+**Pre-work completed:**
+- Added `ANTHROPIC_API_KEY` to `.env.local` and `.env.test` (credits funded — $10)
+
+**Tasks completed:**
+
+- P2-06: Migration 022 — `activate_plan` + `create_plan_version` Supabase SQL RPCs; applied to remote DB
+- P2-06: `app/api/plans/[id]/route.ts` — GET handler (auth + ownership + quota)
+- P2-06: `app/api/plans/[id]/activate/route.ts` — POST handler; calls `activate_plan` RPC atomically
+- P2-06: `app/api/plans/[id]/regenerate/route.ts` — POST handler; re-generates via AI, logs `ai_generations`, calls `create_plan_version`, purpose: `regen_full`
+- P2-06: `app/onboarding/review/review-content.tsx` — full review screen: philosophy card, pace zones table, checkpoints, CSS volume bars, expandable full plan table, Accept & Start + Regenerate modal with quota display
+- P2-06: `tests/unit/review/review.test.tsx` — 12 RTL tests (loading, header/goal formatting, pace zones, checkpoints, volume bars, expand, accept flow, regen modal, quota zero disables)
+- P2-06: `tests/integration/plans-api.test.ts` — 4 DB integration tests (persistGeneratedPlan, create_plan_version, activate_plan sequential, activate_plan rejects non-draft)
+- P2-06: `tests/integration/ai-live.test.ts` — fixed `@vitest-environment node` annotation; increased timeout to 300s
+- P2-06: `scripts/live-test.ts` — standalone tsx live gate script for environments where vitest worker can't inherit `--use-system-ca`
+
+**Tasks incomplete:** none
+
+**Deviations logged:** none
+
+**Tech debt noted (not logged yet):**
+- `claude-sonnet-4-6` silently caps output at ~8-9K tokens per call; 16K `max_tokens` setting is not honoured — plans > 20 weeks require 2-3 retries. Workaround: use shorter race dates in tests; production uses retry loop. Longer-term fix: use Anthropic extended-output beta header or reduce notes verbosity in prompt.
+- `ai-live.test.ts` hangs in vitest worker environment on this machine (corporate proxy — `--use-system-ca` not propagated to worker subprocess). Gate proven via `scripts/live-test.ts` instead.
+
+**Schema issues found and fixed:**
+- `ai_generations.purpose` CHECK constraint: only allows `'initial_plan'`, `'regen_full'`, `'regen_remaining'` — fixed in regenerate route and integration test
+
+**Test status:** unit 370/370 (14 files) · integration 24/25 (1 skip — ai-live.test.ts hangs in vitest worker, gate proven via scripts/live-test.ts) · typecheck ✅ · lint ✅
+
+**Live E2E gate:** ✅ `scripts/live-test.ts` — `NODE_OPTIONS=--use-system-ca npx tsx`
+- Model: `claude-sonnet-4-6` · 16-week plan · 112 sessions · 3 checkpoints
+- Tokens: input=32,534 / output=26,136 (3 attempts — token limit per attempt ~8.7K)
+- Cost: $0.4896 · Business rules: PASS (11 warnings, 0 errors)
+- Philosophy excerpt: "This plan bridges your current fitness (2:32:54 half marathon) to a sub-2:00 goal — a meaningful 33-"
+
+**Commit:** (pending)
+
+**Blockers:** none
+**Next:** Day 12 — `/plan` calendar view (P2-07) or UI E2E with Playwright
+
+---
+
 ## Template
 
 ```

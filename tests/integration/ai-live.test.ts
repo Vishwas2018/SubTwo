@@ -68,6 +68,6 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY)('live AI generation', () => {
       }
       expect(errors).toHaveLength(0);
     },
-    120_000, // 2 min timeout for live API call
+    300_000, // 5 min timeout for live API call (Sonnet 4.6 large output)
   );
 });

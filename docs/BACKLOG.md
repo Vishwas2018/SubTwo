@@ -2,7 +2,7 @@
 
 ## SubTwo — Product Backlog
 
-**Owner:** [CLAUDE WEB - OPUS 4.7] | **Last updated:** Day 10
+**Owner:** [CLAUDE WEB - OPUS 4.7] | **Last updated:** Day 11
 
 ---
 
@@ -42,7 +42,7 @@
 | P2-04  | Plan validation pipeline (Zod + math)            | 🟢     | Day 9 |
 | P2-04b | POST /api/plans/generate (auth+quota+persist)    | 🟢     | Day 9 |
 | P2-05  | DB write transaction (plan + version + sessions) | 🟢     | Day 9 |
-| P2-06  | `/onboarding/review` screen                      | 🔵     |
+| P2-06  | `/onboarding/review` screen                      | 🟢     | Day 11 |
 | P2-07 | `/plan` calendar view                            | 🔵     |
 | P2-08 | `/session/[id]` detail page                      | 🔵     |
 | P2-09 | `/log` manual run entry                          | 🔵     |
