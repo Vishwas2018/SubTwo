@@ -2,7 +2,7 @@
 
 ## SubTwo — Product Backlog
 
-**Owner:** [CLAUDE WEB - OPUS 4.7] | **Last updated:** Day 11
+**Owner:** [CLAUDE WEB - OPUS 4.7] | **Last updated:** Day 12
 
 ---
 
@@ -43,8 +43,8 @@
 | P2-04b | POST /api/plans/generate (auth+quota+persist)    | 🟢     | Day 9 |
 | P2-05  | DB write transaction (plan + version + sessions) | 🟢     | Day 9 |
 | P2-06  | `/onboarding/review` screen                      | 🟢     | Day 11 |
-| P2-07 | `/plan` calendar view                            | 🔵     |
-| P2-08 | `/session/[id]` detail page                      | 🔵     |
+| P2-07 | `/plan` calendar view                            | 🟢     | Day 12 |
+| P2-08 | `/session/[id]` detail page                      | 🟢     | Day 12 |
 | P2-09 | `/log` manual run entry                          | 🔵     |
 | P2-10 | `/check-in` daily form                           | 🔵     |
 | P2-11 | `/checkpoints` UI + verdict display              | 🔵     |
@@ -54,8 +54,9 @@
 
 ## Phase 3 — Hardening
 
-| ID    | Task                                                     | Status |
-| ----- | -------------------------------------------------------- | ------ |
+| ID          | Task                                                     | Status |
+| ----------- | -------------------------------------------------------- | ------ |
+| P3-AI-BATCH | Batch plan generation (skeleton + weekly batches; stitch + validate) | 🔵 |
 | P3-01 | Upstash rate limiting on auth + AI endpoints             | 🔵     |
 | P3-02 | Automated RLS audit script                               | 🔵     |
 | P3-03 | AI cost caps (lifetime + daily + monthly + admin alerts) | 🔵     |

@@ -23,6 +23,8 @@
 | TD-007 | Vercel CLI TLS workaround (NODE_OPTIONS='--use-system-ca') | Low      | Corporate cert chain not in Node bundle                                  | Document in runbook; consider removing post-Phase 4 |
 | TD-008 | OAuth tokens stored as plain TEXT, not encrypted           | Medium   | Supabase Vault requires Phase 3 setup; no integrations active in Phase 1 | Phase 3 (before P5-01 Strava OAuth)                 |
 | TD-009 | In-memory signup rate limit (lost on cold start, not multi-region) | Medium | Phase 1 minimal; full Upstash in P3-01 | Phase 3 (P3-01) |
+| TD-010 | ai-live.test.ts hangs in vitest worker (corporate proxy; `--use-system-ca` not inherited by worker subprocess); live gate via `scripts/live-test.ts` | Medium | CA not in Node bundle | Phase 4 |
+| TD-011 | Single-call plan generation; batch architecture needed for plans >20 weeks (token budget exceeded, requires 2-3 retries) | High | Token budget per call; proper fix is P3-AI-BATCH | Phase 3 (P3-AI-BATCH) |
 
 ---
 

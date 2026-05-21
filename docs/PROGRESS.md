@@ -342,14 +342,72 @@
 - Cost: $0.4896 · Business rules: PASS (11 warnings, 0 errors)
 - Philosophy excerpt: "This plan bridges your current fitness (2:32:54 half marathon) to a sub-2:00 goal — a meaningful 33-"
 
-**Commit:** (pending)
+**Commit:** 7ca875d
 
 **Blockers:** none
-**Next:** Day 12 — `/plan` calendar view (P2-07) or UI E2E with Playwright
+**Next:** Day 12 — `/plan` calendar view (P2-07) + session detail (P2-08)
+
+---
+
+## Day 12 — Phase 2 / Plan Calendar + Session Detail
+
+**Pre-work completed:**
+- DEF-004 logged: AI silently caps at ~8-9K tokens despite `max_tokens: 16000`; S2; mitigated by retry; P3-AI-BATCH scheduled
+- TD-010 logged: ai-live.test.ts vitest worker issue (corporate proxy)
+- TD-011 logged: single-call plan generation token budget; P3-AI-BATCH
+- P3-AI-BATCH added to BACKLOG Phase 3
+
+**Tasks completed:**
+
+- P2-07: `lib/plans/queries.ts` — `getActivePlan(userId)` + `getSessionById(sessionId, userId)` (RLS-scoped, ownership-checked)
+- P2-07: `lib/plans/view-helpers.ts` — `cellState`, `groupSessionsByWeek`, `melbourneToday` (Australia/Melbourne timezone), `SESSION_ABBREV`
+- P2-07: `app/(app)/plan/page.tsx` (server component) — active plan header, empty state with wizard link
+- P2-07: `app/(app)/plan/plan-table.tsx` (client component) — phase filter tabs (All/Base/Build/Peak/Taper), desktop table with Mon–Sun columns, colour-coded cells (completed=green/today=blue/missed=red/future=grey/rest=neutral), current week highlight + "← now" marker, weekly km column, cell links to /session/[id], legend; mobile vertical card layout <768px
+- P2-08: `app/(app)/session/[id]/page.tsx` (server component) — planned block (type/distance/pace range/structure/focus/notes/badges), actual block (linked run details OR no-run + Log Run stub), read-only comments stub, 404 on non-owner, back-to-/plan link
+- Tests: `tests/unit/plans/view-helpers.test.ts` — 22 tests covering all cellState branches (today/missed/future/rest/completed/deleted-run/undefined-run/boundary edges), groupSessionsByWeek (grouping, sort order, empty), melbourneToday DST edge, SESSION_ABBREV
+- Tests: `tests/unit/plans/queries.test.ts` — 13 tests covering getActivePlan + getSessionById all branches via chainable Supabase mock (queue-based dequeue pattern)
+- Tests: `tests/unit/plan/plan-table.test.tsx` — 10 RTL tests (week rows, phase tabs, cell abbreviations, session links, phase filter, legend, today marker, empty plan)
+- Tests: `tests/integration/plan-queries.test.ts` — 4 DB integration tests (active plan shape, session schema for view-helpers, ownership, no-linked-run)
+
+**Tasks incomplete:** none
+
+**Defects logged:** DEF-004
+**Deviations logged:** none
+**Tech debt added:** TD-010, TD-011
+
+**Test status:** unit 409/409 (17 files) · integration 28/29 (1 timeout — ai-live.test.ts known vitest issue) · typecheck ✅ · lint ✅ (0 errors, 0 warnings)
+
+**Visual check:** ⚠️ Pending user walkthrough (see prompt below)
+
+**Commits:** 7d46fcf (code) · (docs pending)
+
+**Blockers:** none
+**Next:** Day 13 — Run logging `/log` (P2-09) or daily check-in
 
 ---
 
 ## Template
+
+```
+## Day X — <Phase Name>
+
+**Tasks completed:**
+- P_-__ <summary>
+
+**Tasks incomplete:**
+- P_-__ <summary> — <reason>
+
+**Defects logged:** DEF-XXX, ...
+**Deviations logged:** DEV-XXX, ...
+**Tech debt added:** TD-XXX, ...
+**ADRs:** ADR-XXX <title>
+
+**Test status:** unit X/X · integration X/X · lint pass · typecheck pass
+**Time spent:** ~Xh
+
+**Blockers:** ...
+**Next:** Day X+1 — <theme>
+```
 
 ```
 ## Day X — <Phase Name>

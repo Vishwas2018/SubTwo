@@ -18,7 +18,14 @@
 
 ## Open
 
-_None._
+## DEF-004 | AI output silently caps at ~8-9K tokens despite max_tokens 16000
+- Severity: S2
+- Reported: Day 11 by Code
+- Trace: lib/ai/anthropic-client.ts, lib/ai/prompt-builder.ts
+- Reproduction: generate plan >20 weeks → JSON truncated mid-output → `stage: 'json_parse'` failure; 2-3 retries needed
+- Root cause: single-call generation of full plan with verbose session notes exceeds practical output budget per API call for claude-sonnet-4-6 (~8-9K tokens effective limit despite `max_tokens: 16000` setting)
+- Fix: PROPOSED — batch generation (skeleton + pace zones call 1; weeks in batches of ~8 in subsequent calls; stitch + validate). Defer implementation to Phase 3 (P3-AI-BATCH).
+- Status: 🟡 mitigated by retry loop; proper fix scheduled P3-AI-BATCH
 
 ---
 
