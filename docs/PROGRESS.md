@@ -212,6 +212,31 @@
 
 ---
 
+## Day 8 — Phase 2 / AI Plan Generation Engine
+
+**Tasks completed:**
+
+- P2-02: `lib/ai/prompt-builder.ts` — SYSTEM_PROMPT (~3000 tokens, methodology + output format + injection protection), `buildUserPrompt` (injection-safe `<user_input>` delimiters for all free-text fields, Riegel goal suggestion when goal_time absent), `estimateTokens`, constants
+- P2-03: `lib/ai/anthropic-client.ts` — `generatePlan` pipeline (API → extractJson → Zod → business rules → retry up to maxRetries), injectable `ClientLike` for network-free tests, `extractJson` strips code fences defensively
+
+**Tasks incomplete:** none
+
+**Defects logged:** none
+
+**Deviations logged:** DEV-005 (lib/utils.ts excluded from coverage — shadcn CSS utility, no business logic; was always at 0% coverage but threshold previously appeared to pass)
+
+**Tech debt added:** none
+
+**Test status:** unit 307/307 · integration 1 skipped (gated on ANTHROPIC_API_KEY) · coverage 100% stmts/lines/funcs · 96.13% branches (≥90% threshold) · lint pass · typecheck pass
+
+**Live smoke test:** PENDING — ANTHROPIC_API_KEY not yet added to .env.local
+
+**Blockers:** ANTHROPIC_API_KEY required to run live smoke test (Step 5)
+
+**Next:** Day 9 — P2-05 DB write transaction + API route, P2-04 plan validation pipeline hookup
+
+---
+
 ## Template
 
 ```

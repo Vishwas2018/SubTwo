@@ -37,8 +37,8 @@
 | ID    | Task                                             | Status |
 | ----- | ------------------------------------------------ | ------ |
 | P2-01 | Wizard UI shell (7 steps, conditional branching) | 🔵     |
-| P2-02 | System prompt for plan generation (~3000 tokens) | 🔵     |
-| P2-03 | Anthropic SDK integration + retry logic          | 🔵     |
+| P2-02 | System prompt for plan generation (~3000 tokens) | 🟢     |
+| P2-03 | Anthropic SDK integration + retry logic          | 🟢     |
 | P2-04 | Plan validation pipeline (Zod + math)            | 🔵     |
 | P2-05 | DB write transaction (plan + version + sessions) | 🔵     |
 | P2-06 | `/onboarding/review` screen                      | 🔵     |
