@@ -61,6 +61,15 @@ Track every drift from baseline specs (`01-PRD.md` through `07-Implementation-Ro
 - Resolution: accept-as-baseline
 - Status: ⚪
 
+## DEV-006 | session_type CHECK remap (recovery→easy, marathon_pace→race_pace)
+
+- Detected: Day 9 by Code during migration 020 authoring
+- Baseline doc: docs/03-Database-Schema.md §2.5 session_type enum vs lib/schemas/plan.ts SESSION_TYPE_ENUM
+- Actual: Day 9 migration 020 remapped 'recovery'→'easy' and 'marathon_pace'→'race_pace' because the DB CHECK constraint (migration 005) did not include these AI-generated values; caused fidelity loss in session type display
+- Impact: Medium — AI-generated 'recovery' and 'marathon_pace' sessions stored as different types, losing display accuracy
+- Resolution: Day 10 migration 021 widens the CHECK constraint to include 'recovery' + 'marathon_pace'; `create_plan_from_generation` updated to store AI values verbatim; existing plans unaffected (only widens allowed set)
+- Status: 🟢
+
 ---
 
 ## Resolved / Accepted
