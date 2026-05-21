@@ -4,6 +4,17 @@ import { validatePlan, type PlanInput } from '@/lib/plan-validators';
 import { SYSTEM_PROMPT, buildUserPrompt, MAX_OUTPUT_TOKENS } from './prompt-builder';
 import type { WizardInput } from '@/lib/schemas';
 
+// ─── Pricing ──────────────────────────────────────────────────────────────────
+
+export const SONNET_PRICING = { input_per_mtok: 3, output_per_mtok: 15 } as const;
+
+export function estimateCost(inputTokens: number, outputTokens: number): number {
+  return (
+    (inputTokens / 1_000_000) * SONNET_PRICING.input_per_mtok +
+    (outputTokens / 1_000_000) * SONNET_PRICING.output_per_mtok
+  );
+}
+
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 export type GenerationResult =
@@ -53,7 +64,7 @@ export async function generatePlan(
 ): Promise<GenerationResult> {
   const start = Date.now();
   const maxRetries = opts.maxRetries ?? 2;
-  const model = opts.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4';
+  const model = opts.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
 
   const client: ClientLike =
     opts.client ??

@@ -39,7 +39,7 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY)('live AI generation', () => {
       console.log(
         `Tokens: input=${usage.input_tokens}, output=${usage.output_tokens}`,
       );
-      // Rough cost estimate: ~$3/M input + $15/M output for claude-sonnet-4
+      // Rough cost estimate: ~$3/M input + $15/M output for claude-sonnet-4-6
       const costUsd =
         (usage.input_tokens / 1_000_000) * 3 + (usage.output_tokens / 1_000_000) * 15;
       console.log(`Estimated cost: $${costUsd.toFixed(4)}`);
