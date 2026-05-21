@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { generatePlan } from '@/lib/ai/anthropic-client';
 import { validatePlan } from '@/lib/plan-validators';
