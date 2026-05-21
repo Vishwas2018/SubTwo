@@ -13,7 +13,8 @@ export default defineConfig({
       reporter: ['text', 'html', 'lcov'],
       include: ['lib/**/*.ts'],
       // lib/supabase and lib/auth require Next.js runtime — excluded from unit coverage
-      exclude: ['lib/supabase/**', 'lib/auth/**'],
+      // lib/utils.ts is a shadcn/ui CSS utility (clsx+twMerge) — no business logic to test
+      exclude: ['lib/supabase/**', 'lib/auth/**', 'lib/utils.ts'],
       thresholds: { lines: 100, functions: 100, branches: 90, statements: 100 },
     },
   },
