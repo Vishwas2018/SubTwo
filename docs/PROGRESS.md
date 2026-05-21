@@ -237,6 +237,42 @@
 
 ---
 
+## Day 9 — Phase 2 / Generation API Route + DB Persistence
+
+**Pre-work completed:**
+- Model string verified: `claude-sonnet-4-6` (corrected from `claude-sonnet-4`; set in `.env.local`, `.env.test`, and `anthropic-client.ts` default)
+- Day 8 live smoke test: PENDING — `ANTHROPIC_API_KEY` not in `.env.local`; integration test skipped (not failed); CI gate satisfied
+- CI: ✅ green on main (last run: `docs: Day 8 progress`)
+- DEV-005: added to DEVIATIONS.md (lib/utils.ts shadcn boilerplate coverage exclusion)
+
+**Tasks completed:**
+
+- P2-05: Migration 020 (`create_plan_from_generation` SQL RPC) applied to remote Supabase; handles `session_type` normalization (`recovery→easy`, `marathon_pace→race_pace`) and `phase` lowercasing for DB CHECK constraints; checkpoint flags applied on `time_trial`/`race` sessions in checkpoint weeks
+- P2-05: `lib/plans/persist.ts` — `persistGeneratedPlan` (atomic RPC wrapper) + `computeScheduledDate` (pure date helper)
+- P2-04: `lib/ai/anthropic-client.ts` — `SONNET_PRICING` const (`$3/$15 per MTok`) + `estimateCost` helper
+- P2-04b: `app/api/plans/generate/route.ts` — POST handler: auth → Zod validate → `check_ai_quota` RPC → `generatePlan` → log `ai_generations` (service role) → `persistGeneratedPlan` → increment `ai_generation_count` → 201 with plan data
+
+**Tasks incomplete:** none
+
+**Deviations logged:** DEV-005 (lib/utils.ts coverage exclusion — added to DEVIATIONS.md; was already in PROGRESS Day 8)
+
+**Tech debt added:** none
+
+**Schema issues found and fixed:**
+- `session_type` CHECK constraint in `planned_sessions` excludes `recovery` and `marathon_pace` (valid AI Zod enum values) → CASE mapping in migration 020 SQL
+- `phase` column requires lowercase (`base`/`build`/`peak`/`taper`) but AI generates capitalized strings → `lower()` in migration SQL
+
+**Test status:** unit 306/306 · integration 20/20 (1 skipped — live AI, no key) · coverage 100% stmts/funcs/lines, 95.78% branches · typecheck ✅ · lint ✅
+
+**Live E2E:** deferred — ANTHROPIC_API_KEY not available; cookie-based auth for real route POST requires dev server; deferred to Day 11 review screen E2E gate (DEV approach: same as signup E2E Day 6)
+
+**Commit:** b72154f
+
+**Blockers:** ANTHROPIC_API_KEY needed for live smoke test + full E2E
+**Next:** Day 10 — Wizard UI shell (P2-01)
+
+---
+
 ## Template
 
 ```

@@ -39,9 +39,10 @@
 | P2-01 | Wizard UI shell (7 steps, conditional branching) | 🔵     |
 | P2-02 | System prompt for plan generation (~3000 tokens) | 🟢     |
 | P2-03 | Anthropic SDK integration + retry logic          | 🟢     |
-| P2-04 | Plan validation pipeline (Zod + math)            | 🔵     |
-| P2-05 | DB write transaction (plan + version + sessions) | 🔵     |
-| P2-06 | `/onboarding/review` screen                      | 🔵     |
+| P2-04  | Plan validation pipeline (Zod + math)            | 🟢     | Day 9 |
+| P2-04b | POST /api/plans/generate (auth+quota+persist)    | 🟢     | Day 9 |
+| P2-05  | DB write transaction (plan + version + sessions) | 🟢     | Day 9 |
+| P2-06  | `/onboarding/review` screen                      | 🔵     |
 | P2-07 | `/plan` calendar view                            | 🔵     |
 | P2-08 | `/session/[id]` detail page                      | 🔵     |
 | P2-09 | `/log` manual run entry                          | 🔵     |
