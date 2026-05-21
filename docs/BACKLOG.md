@@ -2,7 +2,7 @@
 
 ## SubTwo — Product Backlog
 
-**Owner:** [CLAUDE WEB - OPUS 4.7] | **Last updated:** Day 7 — **Phase 1 COMPLETE**
+**Owner:** [CLAUDE WEB - OPUS 4.7] | **Last updated:** Day 10
 
 ---
 
@@ -36,7 +36,7 @@
 
 | ID    | Task                                             | Status |
 | ----- | ------------------------------------------------ | ------ |
-| P2-01 | Wizard UI shell (7 steps, conditional branching) | 🔵     |
+| P2-01 | Wizard UI shell (7 steps, conditional branching) | 🟢     | Day 10 |
 | P2-02 | System prompt for plan generation (~3000 tokens) | 🟢     |
 | P2-03 | Anthropic SDK integration + retry logic          | 🟢     |
 | P2-04  | Plan validation pipeline (Zod + math)            | 🟢     | Day 9 |

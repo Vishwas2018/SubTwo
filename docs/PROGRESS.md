@@ -273,6 +273,39 @@
 
 ---
 
+## Day 10 — Phase 2 / Wizard UI
+
+**Pre-work completed:**
+- DEV-006: Migration 021 widens `planned_sessions.session_type` CHECK to include `recovery` + `marathon_pace`; re-issues `create_plan_from_generation` without CASE remapping; applied to remote DB; DEV-006 status 🟢
+
+**Tasks completed:**
+
+- P2-01: 7-step wizard at `/onboarding/wizard` — experience-level branching (beginner/intermediate/advanced), in-memory state, all-string `WizardFormData`
+- P2-01: shadcn/ui components added: radio-group, select, textarea, progress
+- P2-01: `components/wizard/wizard-types.ts` — `WizardFormData`, `INITIAL_FORM_DATA`, `timeToSeconds`, `secondsToTime`, `isFutureDate`, quick-select constants
+- P2-01: `components/wizard/assemble-wizard-input.ts` — converts form data to `WizardInput` via Zod; handles all 3 experience branches
+- P2-01: Step components 1–7 (race basics, experience level, fitness/history, goal, constraints, equipment, generating spinner)
+- P2-01: `components/wizard/time-input.tsx` + `wizard-progress.tsx` helpers
+- P2-01: `app/onboarding/review/page.tsx` + `review-content.tsx` stub (full screen Day 11)
+- P2-01: 52 RTL + unit tests in `tests/unit/wizard/wizard.test.tsx`
+
+**Tasks incomplete:** none
+
+**Deviations logged:** DEV-006 resolved (🟢); migration 021 is the permanent fix
+
+**Tech debt added:** none
+
+**Test status:** unit 358/358 · integration 20/20 · typecheck ✅ · lint ✅ (0 errors, 0 warnings)
+
+**Manual visual gate:** ✅ All 3 experience branches verified at http://localhost:3000/onboarding/wizard
+
+**Commit:** 85dc9a7
+
+**Blockers:** ANTHROPIC_API_KEY still needed for live E2E plan generation
+**Next:** Day 11 — `/onboarding/review` screen (P2-06) — full plan display + acceptance
+
+---
+
 ## Template
 
 ```
