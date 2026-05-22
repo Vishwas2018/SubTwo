@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { WizardInputSchema } from '@/lib/schemas';
 import { generatePlan, estimateCost } from '@/lib/ai/anthropic-client';
+import { checkBudget, maybySendBudgetAlert } from '@/lib/ai/budget';
 import { persistGeneratedPlan } from '@/lib/plans/persist';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -99,14 +100,31 @@ export async function POST(req: Request) {
     );
   }
 
-  // 4. Generate plan
+  // 4. Global AI budget check (monthly soft=$50 / hard=$100)
+  try {
+    const budget = await checkBudget();
+    if (budget.hard_exceeded) {
+      await maybySendBudgetAlert('hard', budget.month_spend);
+      return NextResponse.json(
+        { error: { code: 'ai_budget_exceeded', message: 'Generation temporarily unavailable.' } },
+        { status: 503 },
+      );
+    }
+    if (budget.soft_exceeded) {
+      void maybySendBudgetAlert('soft', budget.month_spend);
+    }
+  } catch {
+    // fail-open: budget check is best-effort; don't block generation on DB error
+  }
+
+  // 5. Generate plan
   const start = Date.now();
   const result = await generatePlan(wizardInput);
   const durationMs = Date.now() - start;
 
   const serviceClient = createServiceClient();
 
-  // 5. Log ai_generations row (service role bypasses RLS)
+  // 6. Log ai_generations row (service role bypasses RLS)
   const costUsd =
     result.success
       ? estimateCost(result.usage.input_tokens, result.usage.output_tokens)
@@ -135,7 +153,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 6. If generation failed → 502 (not counted toward quota — only success=true rows count)
+  // 7. If generation failed → 502 (not counted toward quota — only success=true rows count)
   if (!result.success) {
     return NextResponse.json(
       {
@@ -148,7 +166,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 7. Persist plan atomically
+  // 8. Persist plan atomically
   let persisted: { planId: string; versionId: string; sessionCount: number };
   try {
     persisted = await persistGeneratedPlan({
@@ -169,7 +187,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 8. Return 201
+  // 9. Return 201
   // NOTE: ai_generation_count column is deprecated; check_ai_quota derives the
   // authoritative count via COUNT(*) from ai_generations. No increment needed.
   return NextResponse.json(

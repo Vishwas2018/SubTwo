@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_budget_alerts: {
+        Row: {
+          id: string
+          month: string
+          level: string
+          notified_at: string
+        }
+        Insert: {
+          id?: string
+          month: string
+          level: string
+          notified_at?: string
+        }
+        Update: {
+          id?: string
+          month?: string
+          level?: string
+          notified_at?: string
+        }
+        Relationships: []
+      }
       ai_generations: {
         Row: {
           created_at: string
@@ -850,6 +871,12 @@ export type Database = {
         Returns: undefined
       }
       check_ai_quota: { Args: { p_user_id: string }; Returns: Json }
+      check_global_ai_budget: {
+        Args: { p_soft_cap?: number; p_hard_cap?: number }
+        Returns: Json
+      }
+      get_monthly_ai_spend: { Args: Record<string, never>; Returns: number }
+      try_claim_budget_alert: { Args: { p_level: string }; Returns: boolean }
       compute_checkpoint_verdict: {
         Args: { p_result_seconds: number; p_target_seconds: number }
         Returns: string

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { WizardInputSchema } from '@/lib/schemas';
 import { generatePlan, estimateCost } from '@/lib/ai/anthropic-client';
+import { checkBudget, maybySendBudgetAlert } from '@/lib/ai/budget';
 import { rateLimit } from '@/lib/rate-limit';
 
 type QuotaResult = {
@@ -99,6 +100,23 @@ export async function POST(
       },
       { status: 429 },
     );
+  }
+
+  // Global AI budget check (monthly soft=$50 / hard=$100)
+  try {
+    const budget = await checkBudget();
+    if (budget.hard_exceeded) {
+      await maybySendBudgetAlert('hard', budget.month_spend);
+      return NextResponse.json(
+        { error: { code: 'ai_budget_exceeded', message: 'Generation temporarily unavailable.' } },
+        { status: 503 },
+      );
+    }
+    if (budget.soft_exceeded) {
+      void maybySendBudgetAlert('soft', budget.month_spend);
+    }
+  } catch {
+    // fail-open: budget check is best-effort
   }
 
   // Optional reason from request body (non-fatal if missing/invalid)
