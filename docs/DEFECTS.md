@@ -42,8 +42,8 @@
 - Trace: next.config.ts
 - Reproduction: curl -I https://subtwo.vercel.app → no X-Frame-Options, X-Content-Type-Options, Referrer-Policy, or Permissions-Policy
 - Root cause: headers() config block not added during Phase 1 scaffold
-- Fix: PROPOSED — add headers block in next.config.ts for standard security headers. Defer to Day 14.
-- Status: 🔴
+- Fix: Day 17 — `next.config.ts` headers() block: CSP (default-src self, connect-src Supabase), HSTS (max-age=31536000 includeSubDomains), X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo/payment/usb=()). 8 unit tests verify all headers present + correct values.
+- Status: 🟢
 
 ---
 

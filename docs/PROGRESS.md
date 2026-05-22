@@ -534,6 +534,36 @@
 
 ---
 
+## Day 17 — Phase 3 / Upstash Rate Limiting + Security Headers
+
+**Pre-work — Branch protection investigation:**
+- CI job `verify` matches required context exactly; `strict: true` ✅
+- `enforce_admins: false` — repo admin (owner) can push to main without check passing; accepted solo-dev behavior; CI runs + reports status on every push
+
+**Tasks completed:**
+
+- P3-01: `lib/rate-limit/index.ts` — Upstash `@upstash/ratelimit` sliding-window limiters: signup (5/1h), login (5/1h), ai_generation (3/24h), api_write (30/1m), api_read (100/1m), export (1/1h), invite (5/1d); graceful degradation: fail-open for reads, fail-closed for writes/AI when Upstash unreachable; memory.ts fallback when `UPSTASH_REDIS_*` absent (local dev convenience); replaces `checkLimit` in all routes
+- P3-01: Applied rate limiters — `rateLimit()` (async, per-user or per-IP) on `/api/auth/signup` (IP), `/api/auth/login` (IP), `/api/plans/generate` (user AI), `/api/plans/[id]/regenerate` (user AI), `/api/runs` (user write), `/api/checkins` (user write), `/api/niggles` POST (user write), `/api/export` (user export); all 429 responses include `{error: {code, message, retry_after}}`
+- DEF-012: `next.config.ts` security headers — CSP (default/script/style/img/font/connect/object/base-uri/form-action; connect-src Supabase domains; frame-ancestors none; upgrade-insecure-requests), HSTS max-age=31536000 includeSubDomains, X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo/payment/usb=())
+- Tests: 22 new unit tests (12 Upstash path mock tests incl. fail-open/closed, 8 security header tests); 7 integration tests for limit enforcement (signup/login/write/AI/export/independent-users); 2 route 429-format tests → 34 new tests total
+
+**Tasks incomplete:** none
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** none (TD-009 🟢 paid, DEF-012 🟢 fixed)
+
+**Test status:** unit 534/534 (28 files) · integration 60/61 + 7 new (1 timeout — ai-live.test.ts known TD-010) · typecheck ✅ · lint ✅ · build ✅
+
+**CSP check:** PENDING — awaiting user walkthrough of /dashboard
+
+**Commits:** (see below)
+
+**Blockers:** UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN needed in .env.local + Vercel for live distributed limiting
+**Next:** Day 18 — AI cost caps (P3-03)
+
+---
+
 ## Template
 
 ```
