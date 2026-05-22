@@ -56,7 +56,7 @@
 
 | ID          | Task                                                     | Status |
 | ----------- | -------------------------------------------------------- | ------ |
-| P3-AI-BATCH | Batch plan generation (skeleton + weekly batches; stitch + validate) | 🔵 |
+| P3-AI-BATCH | Batch plan generation (skeleton + weekly batches; stitch + validate) | 🟢 | Day 16 |
 | P3-01 | Upstash rate limiting on auth + AI endpoints             | 🔵     |
 | P3-02 | Automated RLS audit script                               | 🔵     |
 | P3-03 | AI cost caps (lifetime + daily + monthly + admin alerts) | 🔵     |

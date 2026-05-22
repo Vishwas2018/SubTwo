@@ -500,6 +500,40 @@
 
 ---
 
+## Day 16 — Phase 3 / Batch Plan Generation (P3-AI-BATCH, DEF-004)
+
+**Tasks completed:**
+
+- P3-AI-BATCH: `lib/schemas/plan.ts` — `WeekMetaSchema`, `PlanSkeletonSchema`, `WeekBatchSchema` + exported types
+- P3-AI-BATCH: `lib/ai/prompt-builder.ts` — `computeTotalWeeks()` (extracted + exported); `SKELETON_SYSTEM_PROMPT` + `buildSkeletonPrompt(input)`; `BATCH_SYSTEM_PROMPT` + `buildBatchPrompt(skeleton, weekRange, priorWeekKm)`
+- P3-AI-BATCH: `lib/ai/anthropic-client.ts` — full batch path: `fetchSkeleton()` (Phase A, retry loop), `fetchWeekBatch()` (Phase B per-batch retry), `generatePlanBatch()` (assembly + validation); routing: `≤12wk → single-call`, `>12wk → batch`; `GenerationResult` extended with `metadata: { strategy, batches, total_attempts }`; `GenerationMetadata` type exported
+- P3-AI-BATCH: `tests/unit/ai/batch-generation.test.ts` — 15 new tests: skeleton parsing, routing (single/batch), 20-week assembly, GeneratedPlanSchema validation, validatePlan business rules, seam continuity (W6→W7, W12→W13, taper), per-batch retry (bad JSON retries that batch only), schema exhaustion → stage:schema, token aggregation, week numbering (1..N no gaps), skeleton API error → stage:api, skeleton bad JSON exhausts retries → stage:json_parse
+- `tests/unit/ai/anthropic-client.test.ts` — SAMPLE_INPUT `race_date` changed to `2026-08-10` (≤12wk) so all existing tests stay on single-call path
+- `scripts/live-test.ts` — updated to generate 20-week marathon plan; reports `strategy/batches/total_attempts`; verifies week numbering continuity
+
+**Tasks incomplete:** none
+
+**Defects logged:** DEF-004 → 🟢 fixed
+**Deviations logged:** none
+**Tech debt added:** TD-011 → 🟢 paid
+
+**Live gate (batch path):**
+- Input: 19-week Berlin Marathon (2026-10-04), intermediate, goal 4:00
+- Strategy: batch · Batches: 4 · Total API calls: 5 (1 skeleton + 4 × 6-week batches)
+- Tokens: input=5,456 / output=15,117 · Cost: $0.2431 (vs $0.49 for 16wk single-call)
+- Weeks: 19 · Sessions: 115 · Checkpoints: 3 · Business rules: PASS (4 warnings)
+- Week numbering: 1..19 no gaps ✅
+- No truncation ✅
+
+**Test status:** unit 512/512 (25 files) · integration 60/61 (1 timeout TD-010) · typecheck ✅ · lint ✅
+
+**Commit:** b67067e (code)
+
+**Blockers:** none
+**Next:** Day 17 — Rate limiting (P3-01 Upstash or in-memory hardening)
+
+---
+
 ## Template
 
 ```
