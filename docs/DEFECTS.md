@@ -27,6 +27,33 @@
 - Fix: PROPOSED — batch generation (skeleton + pace zones call 1; weeks in batches of ~8 in subsequent calls; stitch + validate). Defer implementation to Phase 3 (P3-AI-BATCH).
 - Status: 🟡 mitigated by retry loop; proper fix scheduled P3-AI-BATCH
 
+## DEF-008 | No React error boundaries on app pages
+- Severity: S2
+- Reported: Day 13 audit (F-05) by Code
+- Trace: app/(app)/**
+- Reproduction: any unhandled throw in a server component propagates as a 500 with no user-friendly fallback
+- Root cause: no `error.tsx` files alongside page.tsx files; Next.js requires co-located error boundaries per route segment
+- Fix: PROPOSED — add `error.tsx` in each `(app)` route segment. Defer to Day 14.
+- Status: 🔴
+
+## DEF-009 | distanceLabel() helper duplicated across 3 files
+- Severity: S4
+- Reported: Day 13 audit (F-06) by Code
+- Trace: app/(app)/plan/page.tsx, app/(app)/session/[id]/page.tsx, app/onboarding/review/review-content.tsx
+- Reproduction: any distance formatting change requires edits in 3 places
+- Root cause: utility not extracted to lib/plans/view-helpers.ts when those files were created
+- Fix: PROPOSED — extract to lib/plans/view-helpers.ts + update imports. Defer to Day 14.
+- Status: 🔴
+
+## DEF-012 | No security headers configured in next.config.ts
+- Severity: S3
+- Reported: Day 13 audit (F-10) by Code
+- Trace: next.config.ts
+- Reproduction: curl -I https://subtwo.vercel.app → no X-Frame-Options, X-Content-Type-Options, Referrer-Policy, or Permissions-Policy
+- Root cause: headers() config block not added during Phase 1 scaffold
+- Fix: PROPOSED — add headers block in next.config.ts for standard security headers. Defer to Day 14.
+- Status: 🔴
+
 ---
 
 ## Fixed
@@ -57,6 +84,60 @@
 - Root cause: `NextResponse.redirect()` creates a new response; cookies written to the intermediate `response` variable by `setAll()` were never copied to the redirect response
 - Fix: commit b1b534f — after each redirect, copies `response.cookies.getAll()` onto the redirect response
 - Status: 🟢
+
+## DEF-005 | Open redirect in /auth/callback via unvalidated `next` param (F-01, P1)
+- Severity: S1
+- Reported: Day 13 audit by Code
+- Trace: app/auth/callback/route.ts — `next` param passed directly to `new URL(next, origin)` without sanitisation
+- Reproduction: craft link `/auth/callback?code=valid&next=https://evil.com` → user clicks magic link → browser follows redirect to evil.com with valid session
+- Root cause: `next` query param accepted any value including absolute URLs; `new URL('https://evil.com', origin)` resolves to `https://evil.com` regardless of origin
+- Fix: Day 13 — validate `next` starts with `/` AND does not start with `//` AND does not contain `://`; reject to `/dashboard`
+- Status: 🟢
+
+## DEF-006 | No rate limit on POST /api/auth/login (F-02, P2)
+- Severity: S2
+- Reported: Day 13 audit by Code
+- Trace: app/api/auth/login/route.ts — no `checkLimit` call unlike signup route
+- Reproduction: script POST /api/auth/login with any email at >5 req/min → 200 responses with OTP emails sent on each; allows email bombing
+- Root cause: login route was written before rate-limit pattern established; not copied from signup
+- Fix: Day 13 — add `checkLimit(\`login:\${ip}\`, 5, 60 * 60 * 1000)` before OTP dispatch; returns 429 on breach
+- Status: 🟢
+
+## DEF-007 | Non-atomic ai_generation_count increment (F-03, P2)
+- Severity: S2
+- Reported: Day 13 audit by Code
+- Trace: app/api/plans/generate/route.ts:157, app/api/plans/[id]/regenerate/route.ts:171
+- Reproduction: two concurrent generation requests → both read `lifetime_used=3`, both write `ai_generation_count=4`; actual count is 5 but column shows 4
+- Root cause: read-modify-write pattern using `lifetime_used + 1`; `check_ai_quota` already derives the true count via `COUNT(*) FROM ai_generations WHERE success=true`, making the column redundant
+- Fix: Day 13 — removed all writes to `profiles.ai_generation_count`; column left in place (deprecated) but no longer updated; `check_ai_quota` COUNT(*) is the authoritative quota source. No migration needed — column has DEFAULT 0 and no NOT NULL issue with stopping writes.
+- Status: 🟢
+
+## DEF-010 | Hardcoded real email in dev session route (F-07, P3)
+- Severity: S3
+- Reported: Day 13 audit by Code
+- Trace: app/api/dev/session/route.ts:13 — `'jvishu21@gmail.com'` hardcoded as default
+- Reproduction: `GET /api/dev/session` in dev env without `?email=` param → injects session for admin email
+- Root cause: email set during Day 0 and not replaced with env var when route was written
+- Fix: Day 13 — replaced with `process.env.DEV_TEST_EMAIL ?? 'dev@localhost'`; real email removed from source
+- Status: 🟢
+
+## DEF-011 | UntypedRpc interface bypasses TypeScript safety (F-08, P3)
+- Severity: S3
+- Reported: Day 13 audit by Code
+- Trace: app/api/plans/[id]/activate/route.ts, app/api/plans/[id]/regenerate/route.ts
+- Reproduction: `activate_plan` and `create_plan_version` called via `as unknown as UntypedRpc` cast, losing all arg/return type checking
+- Root cause: database.types.ts was generated before migrations 022 were applied; the Functions section did not include the two new RPCs
+- Fix: Day 13 — manually added `activate_plan` and `create_plan_version` entries to `types/database.types.ts` Functions; removed `UntypedRpc` interface and casts from both routes; types now fully resolved
+- Status: 🟢
+
+---
+
+## Already-tracked references
+
+| Finding | Ref | Notes |
+|---------|-----|-------|
+| F-04: Process-local in-memory rate limiter ineffective in multi-instance prod | TD-009 | Logged Day 6; deferred to Phase 4 (Redis/edge rate limit) |
+| F-09: Non-standard proxy.ts middleware filename | DEV-004 | Logged Day 5; intentional deviation from Next.js 16 convention |
 
 ---
 

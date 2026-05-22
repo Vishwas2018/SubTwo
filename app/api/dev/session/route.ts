@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  const email = new URL(request.url).searchParams.get('email') ?? 'jvishu21@gmail.com';
+  const email = new URL(request.url).searchParams.get('email') ?? process.env.DEV_TEST_EMAIL ?? 'dev@localhost';
 
   // Generate OTP + exchange it server-side via service role
   const admin = createServiceClient();

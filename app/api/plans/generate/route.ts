@@ -153,13 +153,9 @@ export async function POST(req: Request) {
     );
   }
 
-  // 8. Increment profiles.ai_generation_count (best-effort; non-fatal)
-  await serviceClient
-    .from('profiles')
-    .update({ ai_generation_count: (quotaResult.lifetime_used ?? 0) + 1 })
-    .eq('id', user.id);
-
-  // 9. Return 201
+  // 8. Return 201
+  // NOTE: ai_generation_count column is deprecated; check_ai_quota derives the
+  // authoritative count via COUNT(*) from ai_generations. No increment needed.
   return NextResponse.json(
     {
       data: {

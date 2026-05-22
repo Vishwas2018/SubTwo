@@ -45,8 +45,8 @@
 | P2-06  | `/onboarding/review` screen                      | 🟢     | Day 11 |
 | P2-07 | `/plan` calendar view                            | 🟢     | Day 12 |
 | P2-08 | `/session/[id]` detail page                      | 🟢     | Day 12 |
-| P2-09 | `/log` manual run entry                          | 🔵     |
-| P2-10 | `/check-in` daily form                           | 🔵     |
+| P2-09 | `/log` manual run entry                          | 🟢     | Day 13 |
+| P2-10 | `/check-in` daily form                           | 🟢     | Day 13 |
 | P2-11 | `/checkpoints` UI + verdict display              | 🔵     |
 | P2-12 | `/niggles` log UI                                | 🔵     |
 | P2-13 | `/dashboard` with trends + alerts                | 🔵     |

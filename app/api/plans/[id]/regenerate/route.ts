@@ -3,14 +3,6 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { WizardInputSchema } from '@/lib/schemas';
 import { generatePlan, estimateCost } from '@/lib/ai/anthropic-client';
 
-// Minimal interface for RPCs not yet in generated DB types (migration 022)
-interface UntypedRpc {
-  rpc(
-    fn: string,
-    args: Record<string, unknown>,
-  ): Promise<{ data: unknown; error: { message: string } | null }>;
-}
-
 type QuotaResult = {
   allowed: boolean;
   lifetime_used: number;
@@ -143,12 +135,11 @@ export async function POST(
     );
   }
 
-  // Add new plan version via migration 022 RPC
-  const svcRpc = serviceClient as unknown as UntypedRpc;
-  const { data: versionData, error: versionErr } = await svcRpc.rpc('create_plan_version', {
+  // Add new plan version via migration 022 RPC (typed via database.types.ts)
+  const { data: versionData, error: versionErr } = await serviceClient.rpc('create_plan_version', {
     p_plan_id: id,
-    p_plan: result.plan as unknown as Record<string, unknown>,
-    p_generation_id: genRow.id as string,
+    p_plan: result.plan as unknown as import('@/types/database.types').Json,
+    p_generation_id: genRow.id,
   });
 
   if (versionErr) {
@@ -168,11 +159,8 @@ export async function POST(
       .eq('id', vd.version_id);
   }
 
-  // Best-effort: increment ai_generation_count on profile
-  await serviceClient
-    .from('profiles')
-    .update({ ai_generation_count: (quotaResult.lifetime_used ?? 0) + 1 })
-    .eq('id', user.id);
+  // NOTE: ai_generation_count column is deprecated; check_ai_quota derives the
+  // authoritative count via COUNT(*) from ai_generations. No increment needed.
 
   return NextResponse.json({
     data: {

@@ -386,6 +386,43 @@
 
 ---
 
+## Day 13 — Phase 2 / Audit Fixes + Run Logging + Daily Check-in
+
+**Pre-work — Audit fixes (F-01, F-02, F-03, F-07, F-08):**
+
+- DEF-005 ✅ F-01 (P1): open redirect in `/auth/callback` — validate `next` param must start with `/`, not `//`, not contain `://`; unit test added (11 cases)
+- DEF-006 ✅ F-02 (P2): no rate limit on `/api/auth/login` — added `checkLimit(login:IP, 5, 1hr)` matching signup; unit test added (4 cases)
+- DEF-007 ✅ F-03 (P2): non-atomic `ai_generation_count` reads removed from generate + regenerate routes; `check_ai_quota` COUNT(*) is authoritative; column deprecated (no migration needed — just stopped writing)
+- DEF-010 ✅ F-07 (P3): hardcoded `jvishu21@gmail.com` in dev session route → `process.env.DEV_TEST_EMAIL ?? 'dev@localhost'`
+- DEF-011 ✅ F-08 (P3): manually added `activate_plan` and `create_plan_version` to `types/database.types.ts` Functions; removed `UntypedRpc` interface and casts from both plan routes
+- DEFECTS.md updated: all 10 audit findings logged (DEF-005 through DEF-012, F-04→TD-009, F-09→DEV-004)
+
+**Tasks completed:**
+
+- P2-09: `app/api/runs/route.ts` — POST manual run (validates RunInputSchema, inserts, auto-matches to planned session via `match_run_to_planned_session` RPC)
+- P2-09: `app/api/runs/[id]/route.ts` — PATCH (partial update, typed RunUpdate) + DELETE (soft-delete via `deleted_at`)
+- P2-10: `app/api/checkins/route.ts` — POST upsert on `(user_id, checkin_date)` unique constraint
+- P2-09: `app/(app)/log/page.tsx` (server) + `log-form.tsx` (client) — date/distance/duration(h/m/s)/HR/elevation/RPE/felt-easy/stitch+severity conditional/shoes/session-link select/notes; prefill from `?session=<id>`
+- P2-10: `app/(app)/check-in/page.tsx` (server) + `checkin-form.tsx` (client) — sleep/RHR/weight/energy(1-5)/mood(1-5)/niggle/notes; prefill + "editing" label when today's check-in already exists
+- Note: `avg_pace_seconds` is `GENERATED ALWAYS AS (...)` — route correctly excludes it from INSERT/UPDATE; Postgres auto-computes from `distance_km` and `duration_seconds`
+
+**Tasks incomplete:** none
+
+**Defects logged:** DEF-005 (✅ fixed), DEF-006 (✅ fixed), DEF-007 (✅ fixed), DEF-008 (🔴 open, deferred P3-10), DEF-009 (🔴 open, deferred Day 14), DEF-010 (✅ fixed), DEF-011 (✅ fixed), DEF-012 (🔴 open, deferred Day 14)
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 442/442 (21 files) · integration 35/36 (1 timeout — ai-live.test.ts known vitest proxy issue TD-010) · typecheck ✅ · lint ✅
+
+**Visual check:** ⚠️ Pending user walkthrough per STEP 6
+
+**Commits:** pending
+
+**Blockers:** none
+**Next:** Day 14 — `/checkpoints` UI + verdict display (P2-11) or `/niggles` log (P2-12)
+
+---
+
 ## Template
 
 ```

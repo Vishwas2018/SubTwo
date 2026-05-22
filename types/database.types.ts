@@ -845,10 +845,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_plan: {
+        Args: { p_plan_id: string; p_user_id: string }
+        Returns: undefined
+      }
       check_ai_quota: { Args: { p_user_id: string }; Returns: Json }
       compute_checkpoint_verdict: {
         Args: { p_result_seconds: number; p_target_seconds: number }
         Returns: string
+      }
+      create_plan_version: {
+        Args: { p_plan_id: string; p_plan: Json; p_generation_id: string }
+        Returns: Json
       }
       match_run_to_planned_session: {
         Args: { p_run_id: string }

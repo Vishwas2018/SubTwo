@@ -2,10 +2,22 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/types/database.types';
 
+function safeRedirectPath(next: string | null): string {
+  if (
+    !next ||
+    !next.startsWith('/') ||
+    next.startsWith('//') ||
+    next.includes('://')
+  ) {
+    return '/dashboard';
+  }
+  return next;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/dashboard';
+  const next = safeRedirectPath(searchParams.get('next'));
 
   if (code) {
     // Create the redirect response first so we can set session cookies directly on it
