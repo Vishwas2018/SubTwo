@@ -416,7 +416,8 @@
 
 **Visual check:** ⚠️ Pending user walkthrough per STEP 6
 
-**Commits:** pending
+**Commits:** bd8bb48 (code + docs)
+**CI run:** https://github.com/Vishwas2018/SubTwo/actions/runs/26267156875 — ✅ green (53s)
 
 **Blockers:** none
 **Next:** Day 14 — `/checkpoints` UI + verdict display (P2-11) or `/niggles` log (P2-12)
