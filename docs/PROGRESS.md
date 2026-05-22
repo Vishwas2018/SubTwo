@@ -424,6 +424,35 @@
 
 ---
 
+## Day 14 — Phase 2 / Checkpoints UI + Niggles Log
+
+**Tasks completed:**
+
+- P2-11: `app/api/checkpoints/route.ts` — GET (active plan + specs + completed, merged by checkpoint_type) + POST (derives target_seconds from `raw_plan_json.checkpoints`, computes pct_deviation = `(target-result)/target*100`, verdict + recommended_action via checkpoint-logic, inserts row)
+- P2-11: `app/(app)/checkpoints/page.tsx` (server) + `checkpoints-client.tsx` (client) — card per checkpoint spec; completed: target/result/verdict badge (green/amber/red)/deviation/action; pending: target+week+[Log Result]; Log Result modal (date + min:sec inputs); empty state if no active plan
+- P2-12: `app/api/niggles/route.ts` — GET `?active=true` (default, resolved_date IS NULL) / `?all=true` + POST (body_part enum, severity 1-10, started_date, notes)
+- P2-12: `app/api/niggles/[id]/route.ts` — PATCH (update severity, set resolved_date, update notes; ownership checked)
+- P2-12: `app/(app)/niggles/page.tsx` (server) + `niggles-client.tsx` (client) — Active/Resolved tabs, severity bar, days-active counter, [Update Severity] slider + [Mark Resolved] per card; 5-day physio banner; add-niggle form (body_part select + severity slider + started_date + notes)
+- Tests: `tests/integration/checkpoints.integration.test.ts` — 5 tests: green/amber/red verdict boundaries, plan filter, pure-logic boundary conditions
+- Tests: `tests/integration/niggles.integration.test.ts` — 8 tests: insert required/all fields, active filter, PATCH severity/resolve, resolved excluded from active filter, all filter, constraint violation
+
+**Tasks incomplete:** none
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 442/442 (21 files) · integration 48/49 (1 timeout — ai-live.test.ts known vitest proxy issue TD-010) · typecheck ✅
+
+**Visual check:** ⚠️ Awaiting user walkthrough per STEP 6
+
+**Commits:** (see below)
+
+**Blockers:** none
+**Next:** Day 15 — `/dashboard` trends + alerts (P2-13)
+
+---
+
 ## Template
 
 ```
