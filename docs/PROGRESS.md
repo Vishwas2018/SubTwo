@@ -453,6 +453,53 @@
 
 ---
 
+## Day 15 — Phase 2 Exit / Dashboard + Settings + Error Boundaries
+
+**Tasks completed:**
+
+- P2-13: `lib/dashboard/alert-rules.ts` — pure functions: `easyPaceAlert`, `sleepAlert`, `niggleAlert`, `computeAlerts`, `daysBetween`; 27 unit tests at 100% coverage
+- P2-13: `lib/dashboard/queries.ts` — `getDashboardData(userId)`: current week progress (km + sessions), next upcoming session, 4-week rolling trend buckets (weekly_km/avg_easy_pace/avg_sleep/avg_rhr), alert computation, readiness (last checkpoint), active niggle count
+- P2-13: `app/(app)/dashboard/page.tsx` — server component: today card (session type/focus/distance + View/Log links), week progress bars (sessions % + km %), alerts panel, readiness gauge (verdict color + label), 4-week CSS trend mini-bars, niggles indicator, quick nav; empty state → wizard
+- P2-14: `app/api/me/route.ts` — GET (profile read) + PATCH (display_name, timezone update) + DELETE (auth user deletion → cascade)
+- P2-14: `app/api/export/route.ts` — GET full JSON dump (profile, plans, planned_sessions, runs, daily_checkins, checkpoints, niggles, plan_adjustments); Content-Disposition attachment header
+- P2-14: `app/(app)/settings/page.tsx` + `settings-client.tsx` — 4 tabs: Profile (display_name edit, race info read-only from active plan, AI count), Integrations (Strava/Garmin placeholders), Sharing (placeholder), Data (JSON export + account delete with email double-confirm)
+- DEF-008: `app/error.tsx` (route-level, retry button), `app/global-error.tsx` (root-level, reload), `app/not-found.tsx` (404 with dashboard link) — all on-brand
+
+**Tasks incomplete:** none
+
+**Defects logged:** DEF-008 ✅ fixed
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 497/497 (24 files) · integration 60/61 (1 timeout — ai-live.test.ts TD-010) · typecheck ✅ · lint ✅ (0 errors, 0 warnings)
+
+**Visual check:** ⚠️ Awaiting user walkthrough per STEP 6
+
+**Commit:** f9a58b6
+
+**Blockers:** none
+**Next:** Phase 3 kickoff — [CLAUDE WEB - OPUS 4.7]
+
+---
+
+## Phase 2 COMPLETE
+
+**Exit criteria:**
+
+| Criterion | Status | Notes |
+|-----------|--------|-------|
+| E2E happy path (signup→wizard→plan→log→dashboard) | ⚠️ Pending visual | User walkthrough required |
+| All P2-01..14 → 🟢 | ✅ | All 14 tasks done |
+| Zero `any`, zero console.log | ✅ | Grepped app/, lib/, components/ — no matches |
+| CI green, build clean | ✅ | typecheck + unit 497 + integration 60/61 |
+| Open defects triaged | ✅ | DEF-004 mitigated; DEF-008 fixed; DEF-009/012 → Phase 3 |
+
+**Tests:** unit 497 · integration 60 · total 557 (excl. 1 known timeout TD-010)
+**Commits:** f9a58b6 (code)
+**Open defects carried forward:** DEF-004 (mitigated), DEF-009, DEF-012 → Phase 3
+
+---
+
 ## Template
 
 ```

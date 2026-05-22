@@ -49,8 +49,8 @@
 | P2-10 | `/check-in` daily form                           | 🟢     | Day 13 |
 | P2-11 | `/checkpoints` UI + verdict display              | 🟢     | Day 14 |
 | P2-12 | `/niggles` log UI                                | 🟢     | Day 14 |
-| P2-13 | `/dashboard` with trends + alerts                | 🔵     |
-| P2-14 | `/settings` (profile, data export)               | 🔵     |
+| P2-13 | `/dashboard` with trends + alerts                | 🟢     | Day 15 |
+| P2-14 | `/settings` (profile, data export)               | 🟢     | Day 15 |
 
 ## Phase 3 — Hardening
 
@@ -66,7 +66,7 @@
 | P3-07 | Sentry error tracking                                    | 🔵     |
 | P3-08 | Coach sharing (invites + view + comments)                | 🔵     |
 | P3-09 | Admin console (invites, users, AI usage)                 | 🔵     |
-| P3-10 | Error boundaries + empty states + skeletons              | 🔵     |
+| P3-10 | Error boundaries + empty states + skeletons              | 🟡     | DEF-008 fixed (error.tsx, global-error.tsx, not-found.tsx); skeletons remain |
 
 ## Phase 4 — Validation & Release
 
