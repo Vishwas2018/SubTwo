@@ -557,7 +557,8 @@
 
 **CSP check:** PENDING — awaiting user walkthrough of /dashboard
 
-**Commits:** (see below)
+**Commits:** 3bcb6fe (P3-01 + DEF-012 code) · d14d63e (docs) · 05cf23b (fix pre-existing lint)
+**CI:** https://github.com/Vishwas2018/SubTwo/actions/runs/26279618841 — ✅ green
 
 **Blockers:** UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN needed in .env.local + Vercel for live distributed limiting
 **Next:** Day 18 — AI cost caps (P3-03)
