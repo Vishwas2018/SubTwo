@@ -5,9 +5,10 @@ import { PLAN_12W_10K, planWithVolumeJump } from './fixtures';
 
 // ─── Shared wizard input ──────────────────────────────────────────────────────
 
+// race_date ≤12 weeks from 2026-05-22 → routes through single-call path
 const SAMPLE_INPUT: WizardInput = {
   race_distance_km: 10,
-  race_date: '2027-06-01',
+  race_date: '2026-08-10',
   experience_level: 'intermediate',
   wizard_data: {
     weekly_km_current: 40,

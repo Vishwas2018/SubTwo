@@ -6,29 +6,31 @@ import { generatePlan } from '@/lib/ai/anthropic-client';
 import { validatePlan } from '@/lib/plan-validators';
 import type { WizardInput } from '@/lib/schemas';
 
-const HALF_MARATHON_INPUT: WizardInput = {
-  race_distance_km: 21.1,
-  race_date: '2026-09-14', // ~17 weeks out — keeps plan short enough for token limit
-  race_name: 'Sub-2 Half Marathon',
+// 20-week marathon plan — triggers batch path (>12 weeks). DEF-004 fix gate.
+const MARATHON_INPUT: WizardInput = {
+  race_distance_km: 42.2,
+  race_date: '2026-10-04',  // ~19-20 weeks — batch path
+  race_name: 'Berlin Marathon',
   experience_level: 'intermediate',
   wizard_data: {
-    weekly_km_current: 30,
-    recent_race: { distance_km: 21.1, time_seconds: 9174, date: '2026-01-01' }, // 2:32:54 HM
-    days_per_week: 4,
-    long_run_day: 'sun',
-    goal_time_seconds: 7199, // 1:59:59 HM
+    weekly_km_current: 40,
+    recent_race: { distance_km: 21.1, time_seconds: 6300, date: '2026-01-01' }, // 1:45 HM
+    days_per_week: 5,
+    long_run_day: 'sat',
+    goal_time_seconds: 14400, // 4:00 marathon
   },
 };
 
 async function main() {
-  console.log('Starting live plan generation...');
+  console.log('Starting live plan generation (batch path test)...');
   const start = Date.now();
 
-  const result = await generatePlan(HALF_MARATHON_INPUT, { maxRetries: 2 });
+  const result = await generatePlan(MARATHON_INPUT, { maxRetries: 2 });
   const elapsed = Date.now() - start;
 
   console.log(`Done in ${(elapsed / 1000).toFixed(1)}s`);
   console.log(`success=${result.success}, attempts=${result.attempts}`);
+  console.log(`strategy=${result.metadata.strategy}, batches=${result.metadata.batches}, total_attempts=${result.metadata.total_attempts}`);
 
   if (!result.success) {
     console.error(`FAIL: stage=${result.stage}`);
@@ -56,7 +58,7 @@ async function main() {
       target_pace_seconds_per_km: s.target_pace_seconds_per_km,
     })),
   );
-  const validation = validatePlan({ experience_level: HALF_MARATHON_INPUT.experience_level, sessions });
+  const validation = validatePlan({ experience_level: MARATHON_INPUT.experience_level, sessions });
   const errors = validation.issues.filter((i) => i.severity === 'error');
   const warnings = validation.issues.filter((i) => i.severity === 'warning');
 
@@ -65,8 +67,18 @@ async function main() {
     process.exit(1);
   }
 
+  // Verify week count + numbering continuity
+  const weekNumbers = plan.weeks.map((w) => w.week_number);
+  const expected = Array.from({ length: plan.total_weeks }, (_, i) => i + 1);
+  const hasGaps = !weekNumbers.every((n, i) => n === expected[i]);
+  if (hasGaps) {
+    console.error('FAIL: week numbering has gaps:', weekNumbers);
+    process.exit(1);
+  }
+
   console.log(`Business rules: PASS (${warnings.length} warnings)`);
-  console.log('GATE: ✅ Live plan generated, validated successfully');
+  console.log(`Week numbering: PASS (1..${plan.total_weeks}, no gaps)`);
+  console.log('GATE: ✅ 20-week plan via batch path — no truncation, validated successfully');
 }
 
 main().catch((err) => {

@@ -1,7 +1,22 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { GeneratedPlanSchema, type GeneratedPlan } from '@/lib/schemas/plan';
+import {
+  GeneratedPlanSchema,
+  PlanSkeletonSchema,
+  WeekBatchSchema,
+  type GeneratedPlan,
+  type PlanSkeleton,
+} from '@/lib/schemas/plan';
 import { validatePlan, type PlanInput } from '@/lib/plan-validators';
-import { SYSTEM_PROMPT, buildUserPrompt, MAX_OUTPUT_TOKENS } from './prompt-builder';
+import {
+  SYSTEM_PROMPT,
+  SKELETON_SYSTEM_PROMPT,
+  BATCH_SYSTEM_PROMPT,
+  buildUserPrompt,
+  buildSkeletonPrompt,
+  buildBatchPrompt,
+  computeTotalWeeks,
+  MAX_OUTPUT_TOKENS,
+} from './prompt-builder';
 import type { WizardInput } from '@/lib/schemas';
 
 // ─── Pricing ──────────────────────────────────────────────────────────────────
@@ -17,6 +32,12 @@ export function estimateCost(inputTokens: number, outputTokens: number): number 
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
+export type GenerationMetadata = {
+  strategy: 'single' | 'batch';
+  batches: number;
+  total_attempts: number;
+};
+
 export type GenerationResult =
   | {
       success: true;
@@ -24,6 +45,7 @@ export type GenerationResult =
       usage: { input_tokens: number; output_tokens: number };
       durationMs: number;
       attempts: number;
+      metadata: GenerationMetadata;
     }
   | {
       success: false;
@@ -31,6 +53,7 @@ export type GenerationResult =
       stage: 'api' | 'json_parse' | 'schema' | 'business_rules';
       durationMs: number;
       attempts: number;
+      metadata: GenerationMetadata;
     };
 
 // Minimal injectable interface so tests never touch the network
@@ -63,9 +86,8 @@ export async function generatePlan(
   opts: AnthropicClientOptions = {},
 ): Promise<GenerationResult> {
   const start = Date.now();
-  const maxRetries = opts.maxRetries ?? 2;
   const model = opts.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
-
+  const maxRetries = opts.maxRetries ?? 2;
   const client: ClientLike =
     opts.client ??
     new Anthropic({
@@ -73,13 +95,28 @@ export async function generatePlan(
       ...(opts.fetchImpl ? { fetch: opts.fetchImpl } : {}),
     });
 
+  const totalWeeks = computeTotalWeeks(input);
+
+  if (totalWeeks > 12) {
+    return generatePlanBatch(input, { start, model, maxRetries, client });
+  }
+  return generatePlanSingle(input, { start, model, maxRetries, client });
+}
+
+// ─── Internal context ─────────────────────────────────────────────────────────
+
+type InternalCtx = { start: number; model: string; maxRetries: number; client: ClientLike };
+
+// ─── Single-call path (≤12 weeks) ─────────────────────────────────────────────
+
+async function generatePlanSingle(input: WizardInput, ctx: InternalCtx): Promise<GenerationResult> {
+  const { start, model, maxRetries, client } = ctx;
   const usage = { input_tokens: 0, output_tokens: 0 };
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
     { role: 'user', content: buildUserPrompt(input) },
   ];
 
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-    // ── API call ────────────────────────────────────────────────────────────
     let rawText: string;
     try {
       const response = await client.messages.create({
@@ -99,10 +136,10 @@ export async function generatePlan(
         stage: 'api',
         durationMs: Date.now() - start,
         attempts: attempt,
+        metadata: { strategy: 'single', batches: 0, total_attempts: attempt },
       };
     }
 
-    // ── JSON parse ──────────────────────────────────────────────────────────
     let parsed: unknown;
     try {
       parsed = extractJson(rawText);
@@ -114,6 +151,7 @@ export async function generatePlan(
           stage: 'json_parse',
           durationMs: Date.now() - start,
           attempts: attempt,
+          metadata: { strategy: 'single', batches: 0, total_attempts: attempt },
         };
       }
       messages.push({ role: 'assistant', content: rawText });
@@ -124,7 +162,6 @@ export async function generatePlan(
       continue;
     }
 
-    // ── Zod schema ──────────────────────────────────────────────────────────
     const zodResult = GeneratedPlanSchema.safeParse(parsed);
     if (!zodResult.success) {
       const errorMsg = zodResult.error.message;
@@ -135,6 +172,7 @@ export async function generatePlan(
           stage: 'schema',
           durationMs: Date.now() - start,
           attempts: attempt,
+          metadata: { strategy: 'single', batches: 0, total_attempts: attempt },
         };
       }
       messages.push({ role: 'assistant', content: rawText });
@@ -145,7 +183,6 @@ export async function generatePlan(
       continue;
     }
 
-    // ── Business rules ──────────────────────────────────────────────────────
     const plan = zodResult.data;
     const planInput = toPlanInput(plan, input.experience_level);
     const validation = validatePlan(planInput);
@@ -160,6 +197,7 @@ export async function generatePlan(
           stage: 'business_rules',
           durationMs: Date.now() - start,
           attempts: attempt,
+          metadata: { strategy: 'single', batches: 0, total_attempts: attempt },
         };
       }
       messages.push({ role: 'assistant', content: rawText });
@@ -176,12 +214,293 @@ export async function generatePlan(
       usage,
       durationMs: Date.now() - start,
       attempts: attempt,
+      metadata: { strategy: 'single', batches: 0, total_attempts: attempt },
     };
   }
 
   /* v8 ignore next 2 */
-  // TypeScript narrowing — loop above always returns or continues
   throw new Error('unreachable');
+}
+
+// ─── Batch path (>12 weeks) ───────────────────────────────────────────────────
+
+const BATCH_SIZE = 6;
+
+type SkeletonFetch =
+  | { ok: true; skeleton: PlanSkeleton; attempts: number }
+  | { ok: false; result: GenerationResult; attempts: number };
+
+async function fetchSkeleton(
+  input: WizardInput,
+  ctx: InternalCtx,
+  usage: { input_tokens: number; output_tokens: number },
+): Promise<SkeletonFetch> {
+  const { model, maxRetries, client, start } = ctx;
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
+    { role: 'user', content: buildSkeletonPrompt(input) },
+  ];
+
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    let rawText: string;
+    try {
+      const response = await client.messages.create({
+        model,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        system: SKELETON_SYSTEM_PROMPT,
+        messages,
+      });
+      const block = response.content[0];
+      rawText = block?.type === 'text' && block.text !== undefined ? block.text : '';
+      usage.input_tokens += response.usage.input_tokens;
+      usage.output_tokens += response.usage.output_tokens;
+    } catch (err) {
+      return {
+        ok: false,
+        attempts: attempt,
+        result: {
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+          stage: 'api',
+          durationMs: Date.now() - start,
+          attempts: attempt,
+          metadata: { strategy: 'batch', batches: 0, total_attempts: attempt },
+        },
+      };
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = extractJson(rawText);
+    } catch (err) {
+      if (attempt > maxRetries) {
+        return {
+          ok: false,
+          attempts: attempt,
+          result: {
+            success: false,
+            error: `Skeleton JSON parse failed: ${err instanceof Error ? err.message : String(err)}`,
+            stage: 'json_parse',
+            durationMs: Date.now() - start,
+            attempts: attempt,
+            metadata: { strategy: 'batch', batches: 0, total_attempts: attempt },
+          },
+        };
+      }
+      messages.push({ role: 'assistant', content: rawText });
+      messages.push({
+        role: 'user',
+        content: `JSON parse failed: ${err instanceof Error ? err.message : String(err)}. Return corrected JSON only.`,
+      });
+      continue;
+    }
+
+    const zodResult = PlanSkeletonSchema.safeParse(parsed);
+    if (!zodResult.success) {
+      if (attempt > maxRetries) {
+        return {
+          ok: false,
+          attempts: attempt,
+          result: {
+            success: false,
+            error: `Skeleton schema invalid: ${zodResult.error.message}`,
+            stage: 'schema',
+            durationMs: Date.now() - start,
+            attempts: attempt,
+            metadata: { strategy: 'batch', batches: 0, total_attempts: attempt },
+          },
+        };
+      }
+      messages.push({ role: 'assistant', content: rawText });
+      messages.push({
+        role: 'user',
+        content: `Schema validation failed: ${zodResult.error.message}. Return corrected JSON only.`,
+      });
+      continue;
+    }
+
+    return { ok: true, skeleton: zodResult.data, attempts: attempt };
+  }
+
+  /* v8 ignore next 2 */
+  throw new Error('unreachable');
+}
+
+type BatchFetch =
+  | { ok: true; weeks: GeneratedPlan['weeks']; attempts: number }
+  | { ok: false; result: GenerationResult; attempts: number };
+
+async function fetchWeekBatch(
+  skeleton: PlanSkeleton,
+  batchIndex: number,
+  weekRange: { start: number; end: number },
+  priorWeekKm: number | null,
+  totalAttemptsSoFar: number,
+  ctx: InternalCtx,
+  usage: { input_tokens: number; output_tokens: number },
+): Promise<BatchFetch> {
+  const { model, maxRetries, client, start } = ctx;
+  const prompt = buildBatchPrompt(skeleton, weekRange, priorWeekKm);
+
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    const totalAttempts = totalAttemptsSoFar + attempt;
+    let rawText: string;
+    try {
+      const response = await client.messages.create({
+        model,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        system: BATCH_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const block = response.content[0];
+      rawText = block?.type === 'text' && block.text !== undefined ? block.text : '';
+      usage.input_tokens += response.usage.input_tokens;
+      usage.output_tokens += response.usage.output_tokens;
+    } catch (err) {
+      if (attempt > maxRetries) {
+        return {
+          ok: false,
+          attempts: attempt,
+          result: {
+            success: false,
+            error: `Batch ${batchIndex + 1} API error: ${err instanceof Error ? err.message : String(err)}`,
+            stage: 'api',
+            durationMs: Date.now() - start,
+            attempts: totalAttempts,
+            metadata: { strategy: 'batch', batches: batchIndex, total_attempts: totalAttempts },
+          },
+        };
+      }
+      continue;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = extractJson(rawText);
+    } catch {
+      if (attempt > maxRetries) {
+        return {
+          ok: false,
+          attempts: attempt,
+          result: {
+            success: false,
+            error: `Batch ${batchIndex + 1} JSON parse failed after ${attempt} attempts`,
+            stage: 'json_parse',
+            durationMs: Date.now() - start,
+            attempts: totalAttempts,
+            metadata: { strategy: 'batch', batches: batchIndex, total_attempts: totalAttempts },
+          },
+        };
+      }
+      continue;
+    }
+
+    const zodResult = WeekBatchSchema.safeParse(parsed);
+    if (!zodResult.success) {
+      if (attempt > maxRetries) {
+        return {
+          ok: false,
+          attempts: attempt,
+          result: {
+            success: false,
+            error: `Batch ${batchIndex + 1} schema invalid: ${zodResult.error.message}`,
+            stage: 'schema',
+            durationMs: Date.now() - start,
+            attempts: totalAttempts,
+            metadata: { strategy: 'batch', batches: batchIndex, total_attempts: totalAttempts },
+          },
+        };
+      }
+      continue;
+    }
+
+    return { ok: true, weeks: zodResult.data.weeks, attempts: attempt };
+  }
+
+  /* v8 ignore next 2 */
+  throw new Error('unreachable');
+}
+
+async function generatePlanBatch(input: WizardInput, ctx: InternalCtx): Promise<GenerationResult> {
+  const { start } = ctx;
+  const usage = { input_tokens: 0, output_tokens: 0 };
+  let totalAttempts = 0;
+
+  // Phase A: skeleton
+  const skeletonFetch = await fetchSkeleton(input, ctx, usage);
+  totalAttempts += skeletonFetch.attempts;
+  if (!skeletonFetch.ok) {
+    return { ...skeletonFetch.result, attempts: totalAttempts };
+  }
+  const skeleton = skeletonFetch.skeleton;
+  const numBatches = Math.ceil(skeleton.total_weeks / BATCH_SIZE);
+
+  // Phase B: session batches (sequential)
+  const allWeeks: GeneratedPlan['weeks'] = [];
+  for (let b = 0; b < numBatches; b++) {
+    const batchStart = b * BATCH_SIZE + 1;
+    const batchEnd = Math.min((b + 1) * BATCH_SIZE, skeleton.total_weeks);
+    const priorWeekKm = allWeeks.length > 0 ? allWeeks[allWeeks.length - 1]!.total_km : null;
+
+    const batchFetch = await fetchWeekBatch(
+      skeleton,
+      b,
+      { start: batchStart, end: batchEnd },
+      priorWeekKm,
+      totalAttempts,
+      ctx,
+      usage,
+    );
+    totalAttempts += batchFetch.attempts;
+    if (!batchFetch.ok) {
+      return { ...batchFetch.result, attempts: totalAttempts };
+    }
+    allWeeks.push(...batchFetch.weeks);
+  }
+
+  // Assembly + full plan validation
+  const assembled: unknown = {
+    summary: skeleton.summary,
+    pace_zones: skeleton.pace_zones,
+    checkpoints: skeleton.checkpoints,
+    weeks: allWeeks,
+    total_weeks: skeleton.total_weeks,
+  };
+
+  const zodResult = GeneratedPlanSchema.safeParse(assembled);
+  if (!zodResult.success) {
+    return {
+      success: false,
+      error: `Assembled plan failed schema: ${zodResult.error.message}`,
+      stage: 'schema',
+      durationMs: Date.now() - start,
+      attempts: totalAttempts,
+      metadata: { strategy: 'batch', batches: numBatches, total_attempts: totalAttempts },
+    };
+  }
+
+  const plan = zodResult.data;
+  const validation = validatePlan(toPlanInput(plan, input.experience_level));
+  const errors = validation.issues.filter((i) => i.severity === 'error');
+
+  if (errors.length > 0) {
+    return {
+      success: false,
+      error: errors.map((i) => i.message).join('; '),
+      stage: 'business_rules',
+      durationMs: Date.now() - start,
+      attempts: totalAttempts,
+      metadata: { strategy: 'batch', batches: numBatches, total_attempts: totalAttempts },
+    };
+  }
+
+  return {
+    success: true,
+    plan,
+    usage,
+    durationMs: Date.now() - start,
+    attempts: totalAttempts,
+    metadata: { strategy: 'batch', batches: numBatches, total_attempts: totalAttempts },
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
