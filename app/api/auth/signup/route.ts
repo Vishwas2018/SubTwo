@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { checkLimit } from '@/lib/rate-limit/memory';
+import { rateLimit } from '@/lib/rate-limit';
 
 const SignupSchema = z.object({
   email: z.string().email().max(254),
@@ -17,10 +17,16 @@ const GENERIC_INVALID_INVITE = {
 
 export async function POST(req: Request) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const limit = checkLimit(`signup:${ip}`, 5, 60 * 60 * 1000);
+  const limit = await rateLimit(`signup:${ip}`, 'signup');
   if (!limit.allowed) {
     return NextResponse.json(
-      { error: { code: 'rate_limited', message: 'Too many attempts. Try again later.' } },
+      {
+        error: {
+          code: 'rate_limited',
+          message: 'Too many attempts. Try again later.',
+          retry_after: Math.ceil((limit.reset - Date.now()) / 1000),
+        },
+      },
       { status: 429 },
     );
   }

@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { WizardInputSchema } from '@/lib/schemas';
 import { generatePlan, estimateCost } from '@/lib/ai/anthropic-client';
 import { persistGeneratedPlan } from '@/lib/plans/persist';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
   // 1. Auth
@@ -18,7 +19,22 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2. Parse + validate body
+  // 2. Distributed AI rate limit (complements DB quota)
+  const aiLimit = await rateLimit(`ai:${user.id}`, 'ai_generation');
+  if (!aiLimit.allowed) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'rate_limited',
+          message: 'AI generation rate limit exceeded. Try again later.',
+          retry_after: Math.ceil((aiLimit.reset - Date.now()) / 1000),
+        },
+      },
+      { status: 429 },
+    );
+  }
+
+  // 3. Parse + validate body
   let body: unknown;
   try {
     body = await req.json();

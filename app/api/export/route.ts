@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET() {
   const supabase = await createClient();
@@ -11,6 +12,20 @@ export async function GET() {
     return NextResponse.json(
       { error: { code: 'unauthorized', message: 'Authentication required.' } },
       { status: 401 },
+    );
+  }
+
+  const rl = await rateLimit(`export:${user.id}`, 'export');
+  if (!rl.allowed) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'rate_limited',
+          message: 'Export limit reached. Try again in an hour.',
+          retry_after: Math.ceil((rl.reset - Date.now()) / 1000),
+        },
+      },
+      { status: 429 },
     );
   }
 

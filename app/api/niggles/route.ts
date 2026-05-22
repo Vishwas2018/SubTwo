@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 const BODY_PARTS = [
   'knee', 'hip', 'hamstring', 'calf', 'it_band', 'shin', 'foot', 'ankle',
@@ -64,6 +65,20 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: { code: 'unauthorized', message: 'Authentication required.' } },
       { status: 401 },
+    );
+  }
+
+  const rl = await rateLimit(`write:${user.id}`, 'api_write');
+  if (!rl.allowed) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'rate_limited',
+          message: 'Too many requests. Slow down.',
+          retry_after: Math.ceil((rl.reset - Date.now()) / 1000),
+        },
+      },
+      { status: 429 },
     );
   }
 

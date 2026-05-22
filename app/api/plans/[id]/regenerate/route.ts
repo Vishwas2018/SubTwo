@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { WizardInputSchema } from '@/lib/schemas';
 import { generatePlan, estimateCost } from '@/lib/ai/anthropic-client';
+import { rateLimit } from '@/lib/rate-limit';
 
 type QuotaResult = {
   allowed: boolean;
@@ -27,6 +28,21 @@ export async function POST(
     return NextResponse.json(
       { error: { code: 'unauthorized', message: 'Authentication required.' } },
       { status: 401 },
+    );
+  }
+
+  // Distributed AI rate limit (complements DB quota)
+  const aiLimit = await rateLimit(`ai:${user.id}`, 'ai_generation');
+  if (!aiLimit.allowed) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'rate_limited',
+          message: 'AI generation rate limit exceeded. Try again later.',
+          retry_after: Math.ceil((aiLimit.reset - Date.now()) / 1000),
+        },
+      },
+      { status: 429 },
     );
   }
 
