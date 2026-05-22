@@ -565,6 +565,35 @@
 
 ---
 
+## Day 18 — Phase 3 / AI Cost Caps + Admin Alerts
+
+**Tasks completed:**
+
+- P3-03: Migration 024 — `ai_budget_alerts` table (dedup), `get_monthly_ai_spend()`, `check_global_ai_budget(p_soft_cap, p_hard_cap)`, `try_claim_budget_alert(p_level)` SQL functions; applied to remote Supabase
+- P3-03: `lib/ai/budget.ts` — `checkBudget()` + `getMonthlySpend()` wrappers (service client, typed); `maybySendBudgetAlert(level, spend)` — atomically claims alert slot via `try_claim_budget_alert`, writes `audit_log`, optionally sends Resend email; deduped per month per level
+- P3-03: `app/api/plans/generate/route.ts` + `app/api/plans/[id]/regenerate/route.ts` — global budget check inserted after per-user quota check; hard exceeded → 503 `ai_budget_exceeded` (does NOT call API); soft exceeded → allow + fire-and-forget alert; fail-open on DB error
+- P3-03: `types/database.types.ts` — `ai_budget_alerts` table + 3 new RPC types added manually
+- P3-03: `tests/integration/budget.integration.test.ts` — 8 integration tests: `get_monthly_ai_spend` (null, success-only filter), `check_global_ai_budget` ($0 / $51 soft / $101 hard+soft), `try_claim_budget_alert` dedup (first=true, second=false, independent levels), `check_ai_quota` still works alongside
+- P3-03: `tests/unit/ai/budget.test.ts` — 14 unit tests: `getMonthlySpend`, `checkBudget` (3 spend levels, error), `maybySendBudgetAlert` (dedup, DB error, audit_log write, Resend email, default admin email, hard cap metadata, Resend failure resilience)
+- TD-012: logged in TECH_DEBT.md (CSP unsafe-inline, Medium, before public launch)
+
+**Tasks incomplete:** none
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** TD-012 (CSP unsafe-inline, logged per pre-work)
+
+**Test status:** unit 548/548 (29 files) · integration 75/76 (1 timeout — ai-live.test.ts known TD-010) · typecheck ✅ · lint ✅ (0 errors)
+
+**Resend:** not configured (RESEND_API_KEY absent) — alerts log to audit_log only. Add RESEND_API_KEY to .env.local + Vercel to enable email alerts.
+
+**Commits:** (see below)
+
+**Blockers:** none
+**Next:** Day 19 — Adjustment rules engine (P3-04)
+
+---
+
 ## Template
 
 ```

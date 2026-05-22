@@ -59,7 +59,7 @@
 | P3-AI-BATCH | Batch plan generation (skeleton + weekly batches; stitch + validate) | 🟢 | Day 16 |
 | P3-01 | Upstash rate limiting on auth + AI endpoints             | 🟢     | Day 17 |
 | P3-02 | Automated RLS audit script                               | 🔵     |
-| P3-03 | AI cost caps (lifetime + daily + monthly + admin alerts) | 🔵     |
+| P3-03 | AI cost caps (lifetime + daily + monthly + admin alerts) | 🟢     | Day 18 |
 | P3-04 | Adjustment rules engine (6 rules)                        | 🔵     |
 | P3-05 | Nightly cron `/api/cron/adjustments`                     | 🔵     |
 | P3-06 | `audit_log` writes on sensitive actions                  | 🔵     |
