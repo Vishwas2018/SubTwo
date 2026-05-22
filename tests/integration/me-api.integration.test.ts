@@ -3,6 +3,7 @@
 // Refs: P2-14
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 
 const SUPABASE_AVAILABLE = !!process.env.SUPABASE_URL;
 
@@ -68,14 +69,12 @@ describe.skipIf(!SUPABASE_AVAILABLE)('/api/me profile update integration', () =>
 
   it('display_name max 100 chars is enforced at application layer', () => {
     const longName = 'a'.repeat(101);
-    const { z } = require('zod');
     const schema = z.object({ display_name: z.string().trim().max(100).nullable().optional() });
     const result = schema.safeParse({ display_name: longName });
     expect(result.success).toBe(false);
   });
 
   it('valid display_name passes schema validation', () => {
-    const { z } = require('zod');
     const schema = z.object({ display_name: z.string().trim().max(100).nullable().optional() });
     expect(schema.safeParse({ display_name: 'Alex' }).success).toBe(true);
     expect(schema.safeParse({ display_name: null }).success).toBe(true);
