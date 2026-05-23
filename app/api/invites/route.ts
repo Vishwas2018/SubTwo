@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
+import { logAudit } from '@/lib/audit/log';
 
 const InviteSchema = z.object({
   email: z.string().email(),
@@ -140,6 +141,7 @@ export async function POST(req: Request) {
     console.log(`[invites] RESEND not configured — accept link: ${acceptUrl}`);
   }
 
+  await logAudit({ action: 'coach_invite_sent', entityType: 'viewer_access', entityId: invite.id, userId: user.id });
   return NextResponse.json(
     { data: { id: invite.id, accept_url: acceptUrl, email_sent: emailSent } },
     { status: 201 },

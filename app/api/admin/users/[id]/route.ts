@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyAdminRequest } from '@/lib/auth/require-admin-api';
+import { logAudit } from '@/lib/audit/log';
 
 const PatchSchema = z.object({ suspended: z.boolean() });
 
@@ -42,5 +43,11 @@ export async function PATCH(
     return NextResponse.json({ error: error?.message ?? 'Not found' }, { status: 404 });
   }
 
+  await logAudit({
+    action: parsed.data.suspended ? 'user_suspended' : 'user_unsuspended',
+    entityType: 'profiles',
+    entityId: id,
+    userId: adminId,
+  });
   return NextResponse.json({ data });
 }

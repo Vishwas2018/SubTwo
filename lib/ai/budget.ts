@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server';
+import { logAudit } from '@/lib/audit/log';
 
 export type BudgetResult = {
   month_spend: number;
@@ -52,10 +53,9 @@ export async function maybySendBudgetAlert(
       ? 'AI generation is now blocked until next month.'
       : 'AI generation is still allowed but approaching the hard cap.');
 
-  // Always write to audit_log (service_role bypasses RLS)
-  await svc.from('audit_log').insert({
+  await logAudit({
     action: `ai_budget_${level}_cap_alert`,
-    entity_type: 'ai_budget',
+    entityType: 'ai_budget',
     metadata: { month_spend: monthSpend, cap: capValue, level },
   });
 

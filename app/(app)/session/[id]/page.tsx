@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth/session';
 import { getSessionById } from '@/lib/plans/queries';
 import { secondsToTimeString } from '@/lib/pace-zones';
 import { createClient } from '@/lib/supabase/server';
+import { distanceLabel } from '@/lib/plans/view-helpers';
 import { CommentsSection } from './comments-section';
 
 const SESSION_LABELS: Record<string, string> = {
@@ -41,14 +42,6 @@ function formatDuration(seconds: number): string {
   if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}m`;
   if (m > 0) return `${m}m ${s.toString().padStart(2, '0')}s`;
   return `${s}s`;
-}
-
-function distanceLabel(km: number): string {
-  if (km <= 5.1) return '5K';
-  if (km <= 10.1) return '10K';
-  if (km <= 21.5) return 'Half Marathon';
-  if (km <= 42.5) return 'Marathon';
-  return `${km}km`;
 }
 
 export default async function SessionPage({

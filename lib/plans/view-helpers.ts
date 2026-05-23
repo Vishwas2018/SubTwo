@@ -43,6 +43,15 @@ export function melbourneToday(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Melbourne' });
 }
 
+/** Human-readable label for common race distances. */
+export function distanceLabel(km: number): string {
+  if (km <= 5.1) return '5K';
+  if (km <= 10.1) return '10K';
+  if (km <= 21.5) return 'Half Marathon';
+  if (km <= 42.5) return 'Marathon';
+  return `${km}km`;
+}
+
 /** Short abbreviation for session type label in table cells. */
 export const SESSION_ABBREV: Record<string, string> = {
   easy: 'E',

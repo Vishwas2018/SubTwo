@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { GeneratedPlan } from '@/lib/schemas/plan';
+import { distanceLabel } from '@/lib/plans/view-helpers';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,14 +37,6 @@ function secPerKmToStr(s: number): string {
   const m = Math.floor(s / 60);
   const sec = Math.round(s % 60);
   return `${m}:${String(sec).padStart(2, '0')} /km`;
-}
-
-function distanceLabel(km: number): string {
-  if (km === 5) return '5K';
-  if (km === 10) return '10K';
-  if (km === 21.1 || km === 21.0975) return 'Half Marathon';
-  if (km === 42.195 || km === 42.2) return 'Marathon';
-  return `${km} km`;
 }
 
 const PHASE_COLORS: Record<string, string> = {

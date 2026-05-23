@@ -6,6 +6,7 @@ import {
   cellState,
   melbourneToday,
   SESSION_ABBREV,
+  distanceLabel,
 } from '@/lib/plans/view-helpers';
 import type { PlannedSession, Run } from '@/lib/plans/view-helpers';
 
@@ -173,6 +174,21 @@ describe('melbourneToday', () => {
     const result = melbourneToday();
     expect(result).toBe('2026-06-16');
   });
+});
+
+// ─── distanceLabel ────────────────────────────────────────────────────────────
+
+describe('distanceLabel', () => {
+  it('returns 5K for 5km', () => expect(distanceLabel(5)).toBe('5K'));
+  it('returns 5K for boundary 5.1km', () => expect(distanceLabel(5.1)).toBe('5K'));
+  it('returns 10K for 10km', () => expect(distanceLabel(10)).toBe('10K'));
+  it('returns 10K for boundary 10.1km', () => expect(distanceLabel(10.1)).toBe('10K'));
+  it('returns Half Marathon for 21.1km', () => expect(distanceLabel(21.1)).toBe('Half Marathon'));
+  it('returns Half Marathon for boundary 21.5km', () => expect(distanceLabel(21.5)).toBe('Half Marathon'));
+  it('returns Marathon for 42.195km', () => expect(distanceLabel(42.195)).toBe('Marathon'));
+  it('returns Marathon for boundary 42.5km', () => expect(distanceLabel(42.5)).toBe('Marathon'));
+  it('returns numeric for ultra distances', () => expect(distanceLabel(50)).toBe('50km'));
+  it('returns numeric for non-standard distances above marathon', () => expect(distanceLabel(80)).toBe('80km'));
 });
 
 // ─── SESSION_ABBREV ───────────────────────────────────────────────────────────

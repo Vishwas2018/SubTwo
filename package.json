@@ -15,11 +15,13 @@
     "test:integration": "cross-env NODE_OPTIONS=--use-system-ca vitest run tests/integration",
     "test:watch": "cross-env NODE_OPTIONS=--use-system-ca vitest",
     "test:coverage": "cross-env NODE_OPTIONS=--use-system-ca vitest run --coverage",
-    "db:types": "supabase gen types typescript --project-id jyxbichqqvaojryvvcce --schema public > types/database.types.ts"
+    "db:types": "supabase gen types typescript --project-id jyxbichqqvaojryvvcce --schema public > types/database.types.ts",
+    "audit:rls": "cross-env NODE_OPTIONS=--use-system-ca tsx scripts/audit-rls.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
     "@base-ui/react": "^1.5.0",
+    "@sentry/nextjs": "^10.53.1",
     "@supabase/ssr": "^0.10.3",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",

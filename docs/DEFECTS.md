@@ -18,23 +18,25 @@
 
 ## Open
 
+_(none)_
+
 ## DEF-008 | No React error boundaries on app pages
 - Severity: S2
 - Reported: Day 13 audit (F-05) by Code
-- Trace: app/(app)/**
+- Trace: app/(app)/**, app/(admin)/**, app/(coach)/**
 - Reproduction: any unhandled throw in a server component propagates as a 500 with no user-friendly fallback
 - Root cause: no `error.tsx` files alongside page.tsx files; Next.js requires co-located error boundaries per route segment
-- Fix: PROPOSED — add `error.tsx` in each `(app)` route segment. Defer to Day 14.
-- Status: 🔴
+- Fix: Day 22 — added `app/(app)/error.tsx`, `app/(admin)/admin/error.tsx`, `app/(coach)/coach/error.tsx`; updated root `app/error.tsx` to call `captureException` via Sentry; each boundary shows error ID + try-again + contextual back-link
+- Status: 🟢
 
-## DEF-009 | distanceLabel() helper duplicated across 3 files
+## DEF-009 | distanceLabel() helper duplicated across 5 files
 - Severity: S4
 - Reported: Day 13 audit (F-06) by Code
-- Trace: app/(app)/plan/page.tsx, app/(app)/session/[id]/page.tsx, app/onboarding/review/review-content.tsx
-- Reproduction: any distance formatting change requires edits in 3 places
+- Trace: app/(app)/plan/page.tsx, app/(app)/session/[id]/page.tsx, app/onboarding/review/review-content.tsx, app/(coach)/coach/[athleteId]/page.tsx, app/(coach)/coach/[athleteId]/plan/page.tsx
+- Reproduction: any distance formatting change requires edits in 5 places; review-content.tsx used exact-km matching instead of range-based
 - Root cause: utility not extracted to lib/plans/view-helpers.ts when those files were created
-- Fix: PROPOSED — extract to lib/plans/view-helpers.ts + update imports. Defer to Day 14.
-- Status: 🔴
+- Fix: Day 22 — `distanceLabel()` already added to `lib/plans/view-helpers.ts`; all 5 files updated to import from shared location; 10 regression tests added to `tests/unit/plans/view-helpers.test.ts`
+- Status: 🟢
 
 ## DEF-012 | No security headers configured in next.config.ts
 - Severity: S3

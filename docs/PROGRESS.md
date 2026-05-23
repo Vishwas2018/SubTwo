@@ -699,6 +699,47 @@
 
 ---
 
+## Day 22 — Phase 3 Exit / Hardening Closeout
+
+**Tasks completed:**
+
+- P3-10 / DEF-009: `distanceLabel()` extracted to `lib/plans/view-helpers.ts`; all 5 duplicate definitions removed from `app/(app)/plan/page.tsx`, `app/(app)/session/[id]/page.tsx`, `app/onboarding/review/review-content.tsx`, `app/(coach)/coach/[athleteId]/page.tsx`, `app/(coach)/coach/[athleteId]/plan/page.tsx`; `review-content.tsx` standardised to range-based (was exact-km). 10 regression tests added to `tests/unit/plans/view-helpers.test.ts`.
+- P3-06: `lib/audit/log.ts` — `logAudit()` best-effort helper (never throws); standardised all existing `svc.from('audit_log').insert(...)` calls in `lib/ai/budget.ts` and `app/api/cron/adjustments/route.ts` to use `logAudit()`; added `logAudit()` calls to `app/api/admin/invites/route.ts` (create), `app/api/admin/invites/[id]/route.ts` (revoke), `app/api/admin/users/[id]/route.ts` (suspend/unsuspend), `app/api/invites/route.ts` (coach invite sent). 4 unit tests in `tests/unit/audit/log.test.ts`.
+- P3-07: Sentry v10.53.1 wired — `sentry.client.config.ts` + `sentry.server.config.ts` + `sentry.edge.config.ts`; `instrumentation.ts` (server/edge via `register()`) + `instrumentation-client.ts` (client); `app/api/sentry-tunnel/route.ts` (ad-blocker tunnel proxy, validates `.sentry.io` host before forwarding); `withSentryConfig` in `next.config.ts` (tunnelRoute, silent, disableLogger); PII scrub in `beforeSend` (email/username/ip/cookies/auth header stripped); no-op init when `SENTRY_DSN` absent.
+- P3-02: Migration `20260523000400_026_rls_audit.sql` — `get_rls_audit()` SECURITY DEFINER fn returns table_name/rls_enabled/policy_count for all public tables; `scripts/audit-rls.ts` — reads-only, calls RPC, exits non-zero on gaps; `pnpm audit:rls` script added to `package.json`.
+- P3-10 / DEF-008: Added `app/(app)/error.tsx`, `app/(admin)/admin/error.tsx`, `app/(coach)/coach/error.tsx`; updated root `app/error.tsx` to call `captureException` via Sentry (dynamic import, fire-and-forget); each boundary has try-again + contextual back-link.
+
+**Phase 3 EXIT AUDIT:**
+- P3-01 Upstash rate limiting: 🟢
+- P3-02 RLS audit script: 🟢 (migration 026 + scripts/audit-rls.ts)
+- P3-03 AI cost caps: 🟢
+- P3-04 Adjustment rules engine: 🟢
+- P3-05 Nightly cron: 🟢
+- P3-06 Audit logging: 🟢
+- P3-07 Sentry: 🟢
+- P3-08 Coach sharing: 🟢
+- P3-09 Admin console: 🟢
+- P3-10 Error boundaries + DEF-008/009: 🟢
+- DEF-008: 🟢 fixed
+- DEF-009: 🟢 fixed
+- TD-010 (ai-live.test.ts timeout in vitest worker): ⚪ carried to Phase 4 — gate proven via `scripts/live-test.ts`
+- TD-013 (cron integration 2 tests skip BASE_URL): ⚪ carried to Phase 4
+
+**Tasks incomplete:** none
+
+**Defects logged:** none (DEF-008 + DEF-009 closed)
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 641/641 (32 files) · integration (same as Day 21, not re-run — no new integration paths) · typecheck ✅ · lint ✅ (0 errors) · build ✅
+
+**Commits:** pending
+
+**Blockers:** migration 026 needs `pnpm supabase db push` before `pnpm audit:rls` will work (SUPABASE_SERVICE_KEY required)
+**Next:** Day 23 — Phase 4 (Playwright E2E + load test + PDF export)
+
+---
+
 ## Template
 
 ```

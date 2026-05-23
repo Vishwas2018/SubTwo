@@ -1,15 +1,8 @@
 import { requireUser } from '@/lib/auth/session';
 import { getActivePlan } from '@/lib/plans/queries';
 import { secondsToTimeString } from '@/lib/pace-zones';
+import { distanceLabel } from '@/lib/plans/view-helpers';
 import { PlanTable, PlanTableEmpty } from './plan-table';
-
-function distanceLabel(km: number): string {
-  if (km <= 5.1) return '5K';
-  if (km <= 10.1) return '10K';
-  if (km <= 21.5) return 'Half Marathon';
-  if (km <= 42.5) return 'Marathon';
-  return `${km}km`;
-}
 
 export default async function PlanPage() {
   const user = await requireUser();

@@ -58,15 +58,15 @@
 | ----------- | -------------------------------------------------------- | ------ |
 | P3-AI-BATCH | Batch plan generation (skeleton + weekly batches; stitch + validate) | 🟢 | Day 16 |
 | P3-01 | Upstash rate limiting on auth + AI endpoints             | 🟢     | Day 17 |
-| P3-02 | Automated RLS audit script                               | 🔵     |
+| P3-02 | Automated RLS audit script                               | 🟢     | Day 22 — `get_rls_audit()` SQL fn (migration 026) + `scripts/audit-rls.ts` + `pnpm audit:rls` |
 | P3-03 | AI cost caps (lifetime + daily + monthly + admin alerts) | 🟢     | Day 18 |
 | P3-04 | Adjustment rules engine (6 rules)                        | 🟢     | Day 19 |
 | P3-05 | Nightly cron `/api/cron/adjustments`                     | 🟢     | Day 19 |
-| P3-06 | `audit_log` writes on sensitive actions                  | 🔵     |
-| P3-07 | Sentry error tracking                                    | 🔵     |
+| P3-06 | `audit_log` writes on sensitive actions                  | 🟢     | Day 22 — `lib/audit/log.ts` helper; admin invite/user/coach invite routes; standardised cron + budget writes |
+| P3-07 | Sentry error tracking                                    | 🟢     | Day 22 — client/server/edge configs; `instrumentation.ts` + `instrumentation-client.ts`; tunnel route; PII scrub in `beforeSend`; no-op if DSN absent |
 | P3-08 | Coach sharing (invites + view + comments)                | 🟢     | Day 20 |
 | P3-09 | Admin console (invites, users, AI usage)                 | 🟢     | Day 21 |
-| P3-10 | Error boundaries + empty states + skeletons              | 🟡     | DEF-008 fixed (error.tsx, global-error.tsx, not-found.tsx); skeletons remain |
+| P3-10 | Error boundaries + empty states + skeletons              | 🟢     | Day 22 — DEF-008 fixed: error.tsx for (app)/(admin)/(coach) + root; Sentry captureException wired; DEF-009 fixed: distanceLabel() extracted to view-helpers.ts |
 
 ## Phase 4 — Validation & Release
 

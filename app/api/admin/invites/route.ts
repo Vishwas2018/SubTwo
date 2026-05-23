@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyAdminRequest } from '@/lib/auth/require-admin-api';
+import { logAudit } from '@/lib/audit/log';
 
 const CreateSchema = z.object({
   note: z.string().max(200).optional(),
@@ -71,7 +72,10 @@ export async function POST(req: Request) {
       .select('id, code, note, expires_at, created_at')
       .single();
 
-    if (!error) return NextResponse.json({ data }, { status: 201 });
+    if (!error) {
+      await logAudit({ action: 'invite_code_created', entityType: 'invite_codes', entityId: data.id, userId: adminId, metadata: { note: note ?? null } });
+      return NextResponse.json({ data }, { status: 201 });
+    }
     if (!error.message.includes('duplicate')) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

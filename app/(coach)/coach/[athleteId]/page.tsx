@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth/session';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { secondsToTimeString } from '@/lib/pace-zones';
+import { distanceLabel } from '@/lib/plans/view-helpers';
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00Z').toLocaleDateString('en-AU', {
@@ -11,14 +12,6 @@ function formatDate(dateStr: string) {
     year: 'numeric',
     timeZone: 'UTC',
   });
-}
-
-function distanceLabel(km: number): string {
-  if (km <= 5.1) return '5K';
-  if (km <= 10.1) return '10K';
-  if (km <= 21.5) return 'Half Marathon';
-  if (km <= 42.5) return 'Marathon';
-  return `${km}km`;
 }
 
 export default async function CoachAthletePage({

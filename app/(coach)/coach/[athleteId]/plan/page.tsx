@@ -4,14 +4,7 @@ import { requireUser } from '@/lib/auth/session';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { secondsToTimeString } from '@/lib/pace-zones';
 import { PlanTable, PlanTableEmpty } from '@/app/(app)/plan/plan-table';
-
-function distanceLabel(km: number): string {
-  if (km <= 5.1) return '5K';
-  if (km <= 10.1) return '10K';
-  if (km <= 21.5) return 'Half Marathon';
-  if (km <= 42.5) return 'Marathon';
-  return `${km}km`;
-}
+import { distanceLabel } from '@/lib/plans/view-helpers';
 
 export default async function CoachAthletePlanPage({
   params,

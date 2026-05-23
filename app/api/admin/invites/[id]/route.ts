@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAdminRequest } from '@/lib/auth/require-admin-api';
+import { logAudit } from '@/lib/audit/log';
 
 export async function DELETE(
   _req: Request,
@@ -31,5 +32,6 @@ export async function DELETE(
   const { error } = await svc.from('invite_codes').delete().eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  await logAudit({ action: 'invite_code_revoked', entityType: 'invite_codes', entityId: id });
   return new NextResponse(null, { status: 204 });
 }

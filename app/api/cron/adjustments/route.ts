@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import { logAudit } from '@/lib/audit/log';
 import { evaluateAdjustments, type AdjustmentContext } from '@/lib/adjustment-rules';
 import { applyAdjustment } from '@/lib/adjustments/apply';
 import type { Json } from '@/types/database.types';
@@ -150,12 +151,12 @@ export async function POST(req: Request) {
       const adjId = await applyAdjustment(plan.id, action);
       if (adjId) {
         adjustmentsApplied++;
-        await svc.from('audit_log').insert({
+        await logAudit({
           action: 'adjustment_applied',
-          entity_type: 'plan_adjustments',
-          entity_id: adjId,
+          entityType: 'plan_adjustments',
+          entityId: adjId,
           metadata: { trigger: action.trigger, plan_id: plan.id, change_summary: action.change_summary },
-          user_id: plan.user_id,
+          userId: plan.user_id,
         });
       }
     }
