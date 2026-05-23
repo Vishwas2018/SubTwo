@@ -699,6 +699,90 @@
 
 ---
 
+## Day 25 — Phase 4 / Post-Deploy Hardening (P4-03)
+
+**PRE-WORK — Day 24 reconcile:**
+- Vercel env vars: still **0** (TD-014 not closed by user in Day 24 session)
+- Prod smoke: `subtwo.vercel.app/` → **500**, `/login` → **500** (boot-required vars absent)
+- VISUAL-COACH + VISUAL-ADMIN: **deferred** (prod is down — cannot run against live)
+
+**STEP 1 — RLS production audit (P3-02 script):**
+- Fixed `scripts/audit-rls.ts`: top-level `await` → async IIFE; loads `.env.local` via dotenv; accepts `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` as fallback var names
+- Added `tsx` devDependency (was referenced in `audit:rls` script but never installed)
+- Ran `pnpm audit:rls` against production Supabase — **2 gaps found:**
+  - `ai_budget_alerts`: RLS disabled, 0 policies
+  - `audit_log`: RLS enabled, 0 policies
+- **Fix:** Migration `20260523000500_027_rls_gaps.sql` — enable RLS on `ai_budget_alerts`; add `admins can read budget alerts` + `admins can read audit log` SELECT policies (service_role bypasses RLS for writes); `supabase db push` applied
+- Re-ran `pnpm audit:rls` → **16/16 tables pass** ✓
+
+**STEP 2 — Live config:**
+- User chose: SENTRY + UPSTASH + INITIAL_ADMIN_EMAIL
+- Credentials collected; `.env.local` updated with all 10 vars
+- Upstash connectivity verified: REST ping → PONG ✓
+- Sentry DSN host validated: `o4511041203994624.ingest.us.sentry.io` → ends `.sentry.io` ✓ (tunnel route accepts)
+- **⚠️ PENDING:** User setting 10 vars in Vercel dashboard (boot-required + live config); reply "set" to trigger deploy
+
+**STEP 3 — Suspended-user enforcement:** Deferred (prod is 500 — cannot verify live)
+**STEP 4 — Cron:** vercel.json confirmed (`0 17 * * *` on `/api/cron/adjustments`); auth code confirmed; live verification deferred (prod is 500)
+**STEP 5 — Tests:** 750/751 local (1 known WONTFIX: ai-live.test.ts TD-010); CI unaffected
+
+**Env vars status after Day 25:**
+
+| Variable | .env.local | Vercel | Status |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | ⏳ pending user | Boot-required |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | ⏳ pending user | Boot-required |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | ⏳ pending user | Boot-required |
+| `ANTHROPIC_API_KEY` | ✅ | ⏳ pending user | Boot-required |
+| `CRON_SECRET` | ✅ | ⏳ pending user | Boot-required |
+| `INITIAL_ADMIN_EMAIL` | ✅ | ⏳ pending user | Budget alerts |
+| `SENTRY_DSN` | ✅ | ⏳ pending user | Error capture |
+| `NEXT_PUBLIC_SENTRY_DSN` | ✅ | ⏳ pending user | Client Sentry |
+| `UPSTASH_REDIS_REST_URL` | ✅ | ⏳ pending user | Rate limiting |
+| `UPSTASH_REDIS_REST_TOKEN` | ✅ | ⏳ pending user | Rate limiting |
+| `RESEND_API_KEY` | ❌ | ❌ | Skip (no-op) |
+
+**Tasks incomplete:**
+- TD-014: Vercel env vars user action pending → prod still 500
+- Prod smoke, VISUAL-COACH, VISUAL-ADMIN: deferred (blocked on TD-014)
+- STEP 3/4 live verifications: deferred (blocked on TD-014)
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt updated:** none (TD-014 still open until Vercel vars confirmed)
+
+**Test status:** unit 750/751 local · 1 known WONTFIX (TD-010) · typecheck ✅ · lint ✅ (0 errors) · CI unaffected
+
+**Commits:** 516f8c7 (RLS fix + script fix + tsx)
+
+**Blockers:** TD-014 — user must set 10 env vars in Vercel dashboard; reply "set" to trigger deploy + smoke
+**Next:** Day 25 continuation (on "set") → deploy, smoke, cron verify, VISUAL walkthrough
+
+---
+
+## Day 24 — Phase 4 / Vercel Env Audit (P4-02)
+
+**STEP 1 — Env audit (complete inventory):**
+- Grepped all `process.env` references across app/, lib/, scripts/
+- Identified 22 unique env vars; categorized into boot-required (5), live-config (6), auto-injected (3), scripts/tests-only (4), dev-only (1)
+- Confirmed: `CRON_SECRET` missing from `.env.local` (added Day 25); Vercel has 0 vars via CLI
+
+**Boot-required (app 500s without):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `CRON_SECRET`
+
+**STEP 2 — User action required:** Deferred — user did not set Vercel vars in Day 24 session
+
+**STEP 3 — Deploy + smoke:** Blocked (Vercel vars unset)
+**STEP 4 — E2E:** Blocked
+**STEP 5 — VISUAL:** Blocked
+
+**Tasks incomplete:** All production steps (TD-014 open)
+**Test status:** unchanged from Day 23 (644/644)
+**Commits:** none (env audit is documentation/planning)
+**Blockers:** TD-014
+**Next:** Day 25 — RLS audit + live config + Vercel vars set
+
+---
+
 ## Day 23 — Phase 4 Kickoff / Launch Readiness
 
 **STEP 1 — Env inventory (as of Day 23):**
