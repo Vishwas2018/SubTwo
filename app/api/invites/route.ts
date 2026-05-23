@@ -137,8 +137,6 @@ export async function POST(req: Request) {
     } catch {
       // best-effort
     }
-  } else {
-    console.log(`[invites] RESEND not configured — accept link: ${acceptUrl}`);
   }
 
   await logAudit({ action: 'coach_invite_sent', entityType: 'viewer_access', entityId: invite.id, userId: user.id });

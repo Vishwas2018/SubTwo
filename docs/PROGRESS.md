@@ -699,6 +699,58 @@
 
 ---
 
+## Day 23 — Phase 4 Kickoff / Launch Readiness
+
+**STEP 1 — Env inventory (as of Day 23):**
+
+| Variable | .env.local | Vercel | CI | Status |
+|---|---|---|---|---|
+| `RESEND_API_KEY` | ❌ | ❌ | ❌ | No-op: emails not sent, audit_log write still happens |
+| `UPSTASH_REDIS_REST_URL/TOKEN` | ❌ | ❌ | ❌ | No-op: in-memory rate limit fallback |
+| `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | ❌ | ❌ | ❌ | No-op: Sentry init guarded |
+| `NEXT_PUBLIC_BASE_URL` | ❌ | ❌ | ❌ | Cron HTTP tests skipped; fixed via unit tests (see TD-013) |
+| `ANTHROPIC_API_KEY` | ✅ | ❓* | ❌ | AI generation works locally |
+| `NEXT_PUBLIC_SUPABASE_URL/ANON_KEY` | ✅ | ❓* | ✅ | App works locally + CI build |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | ❓* | ❌ | Admin routes work locally |
+
+*Vercel CLI reports 0 env vars (team context mismatch or unset) — Vercel deployment returns 500 (confirmed via cron test hit); logged as TD-014.
+
+**STEP 2 — Credential wiring:** All skipped by user (kept no-op fallbacks).
+
+**STEP 3 — Tech debt:**
+- **TD-013 🟢 PAID:** Converted 2 HTTP cron auth tests to direct handler unit tests in `tests/unit/cron/cron-auth.test.ts` (3 tests: no-auth, wrong-secret, missing-env). Runs in CI without a live server.
+- **TD-010 🟢 WONTFIX:** `ai-live.test.ts` hangs in vitest worker due to corporate proxy (not a code defect); CI unaffected (API key absent → skip); gate proven via `scripts/live-test.ts`.
+- **TD-014 🔴 NEW:** Vercel deployment missing env vars — app returns 500 for all requests. Must set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `CRON_SECRET` in Vercel dashboard before P4-08 production deploy.
+
+**STEP 4 — E2E happy path:** Deferred (no Playwright infra; scripted integration pass requires live server + Supabase; gate previously proven via Day 11 `scripts/live-test.ts`).
+
+**STEP 5 — Consolidated visual walkthrough (VISUAL-COACH + VISUAL-ADMIN):**
+Produced as a 9-step numbered guide in this session output:
+- Part A (steps 1–4): Admin — /admin banner, generate invite code, user list, AI usage spend bars
+- Part B (steps 5–9): Coach loop — invite from settings, incognito accept+signup with new invite code, /coach read-only view, comment on session, athlete sees comment
+Awaiting user walkthrough execution to close VISUAL-COACH + VISUAL-ADMIN.
+
+**STEP 6 — Cleanup:**
+- Removed `console.log` from `app/api/invites/route.ts` (accept_url already in response body)
+- Zero `any` / zero `console.log` in app/ and lib/
+
+**Tasks incomplete:**
+- TD-014: Vercel env vars not configured — deferred to P4-08 (user must set in Vercel dashboard)
+- VISUAL-COACH + VISUAL-ADMIN: walkthrough guide produced, user execution pending
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt updated:** TD-010 WONTFIX, TD-013 PAID, TD-014 NEW
+
+**Test status:** unit 644/644 (33 files) · typecheck ✅ · lint ✅ (0 errors) · build ✅
+
+**Commits:** pending
+
+**Blockers:** TD-014 (Vercel env vars) blocks production smoke tests and VISUAL walkthrough against Vercel
+**Next:** Day 24 — P4-08 Vercel env vars + production deploy + Phase 4 E2E
+
+---
+
 ## Day 22 — Phase 3 Exit / Hardening Closeout
 
 **Tasks completed:**
