@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth/session';
 import { getSessionById } from '@/lib/plans/queries';
 import { secondsToTimeString } from '@/lib/pace-zones';
+import { createClient } from '@/lib/supabase/server';
+import { CommentsSection } from './comments-section';
 
 const SESSION_LABELS: Record<string, string> = {
   easy: 'Easy Run',
@@ -61,6 +63,20 @@ export default async function SessionPage({
   if (!data) notFound();
 
   const { session, plan, linkedRun } = data;
+
+  // Fetch comments for linked run (run_owner_reads_comments RLS allows this)
+  let initialComments: { id: string; comment: string; created_at: string; author_id: string }[] =
+    [];
+  if (linkedRun) {
+    const supabase = await createClient();
+    const { data: comments } = await supabase
+      .from('run_comments')
+      .select('id, comment, created_at, author_id')
+      .eq('run_id', linkedRun.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true });
+    initialComments = comments ?? [];
+  }
   const sessionLabel = SESSION_LABELS[session.session_type] ?? session.session_type;
   const phaseColor = PHASE_COLORS[session.phase] ?? 'bg-slate-100 text-slate-700';
 
@@ -226,11 +242,20 @@ export default async function SessionPage({
         )}
       </section>
 
-      {/* Comments stub */}
-      <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
-        <h2 className="font-semibold text-slate-700 text-sm uppercase tracking-wide">Comments</h2>
-        <p className="text-slate-400 text-sm">No comments yet. (Comments coming in Phase 3.)</p>
-      </section>
+      {linkedRun && (
+        <CommentsSection
+          runId={linkedRun.id}
+          initialComments={initialComments}
+          currentUserId={user.id}
+          canComment={true}
+        />
+      )}
+      {!linkedRun && session.session_type !== 'rest' && (
+        <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+          <h2 className="font-semibold text-slate-700 text-sm uppercase tracking-wide">Comments</h2>
+          <p className="text-slate-400 text-sm">Log a run to enable comments.</p>
+        </section>
+      )}
     </main>
   );
 }

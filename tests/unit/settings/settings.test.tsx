@@ -76,11 +76,15 @@ describe('SettingsClient', () => {
   });
 
   it('switches to Sharing tab', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [] }),
+    });
     const user = userEvent.setup();
     setup();
     await user.click(screen.getByRole('button', { name: 'Sharing' }));
-    expect(screen.getByText(/coach sharing/i)).toBeInTheDocument();
-    expect(screen.getByText(/phase 3/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/coach access/i)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /invite coach/i })).toBeInTheDocument();
   });
 
   it('switches to Data tab and shows export/delete', async () => {

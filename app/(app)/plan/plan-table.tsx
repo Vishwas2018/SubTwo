@@ -29,9 +29,10 @@ type Phase = 'all' | 'base' | 'build' | 'peak' | 'taper';
 type Props = {
   sessions: PlannedSession[];
   totalWeeks: number;
+  baseSessionHref?: string;
 };
 
-export function PlanTable({ sessions, totalWeeks }: Props) {
+export function PlanTable({ sessions, totalWeeks, baseSessionHref = '/session' }: Props) {
   const today = melbourneToday();
   const [phase, setPhase] = useState<Phase>('all');
 
@@ -131,7 +132,7 @@ export function PlanTable({ sessions, totalWeeks }: Props) {
                     return (
                       <td key={d} className="px-1 py-1.5">
                         <Link
-                          href={`/session/${s.id}`}
+                          href={`${baseSessionHref}/${s.id}`}
                           className={`block rounded border text-center px-1 py-1 text-xs font-medium transition-opacity hover:opacity-80 ${CELL_COLORS[state]}`}
                           title={`${s.session_type}${s.distance_km ? ` · ${s.distance_km}km` : ''}`}
                         >
@@ -183,7 +184,7 @@ export function PlanTable({ sessions, totalWeeks }: Props) {
                   return (
                     <Link
                       key={s.id}
-                      href={`/session/${s.id}`}
+                      href={`${baseSessionHref}/${s.id}`}
                       className={`rounded border px-2 py-1 text-xs font-medium ${CELL_COLORS[state]}`}
                     >
                       {DAY_LABELS[(s.day_of_week - 1) % 7]} · {SESSION_ABBREV[s.session_type] ?? s.session_type}

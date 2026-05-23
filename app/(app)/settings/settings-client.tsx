@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -160,11 +160,216 @@ function IntegrationsTab() {
   );
 }
 
+type Invite = {
+  id: string;
+  invite_email: string;
+  can_comment: boolean;
+  status: string;
+  invited_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+  viewer_id: string | null;
+};
+
 function SharingTab() {
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [email, setEmail] = useState('');
+  const [canComment, setCanComment] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [acceptUrl, setAcceptUrl] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState<string | null>(null);
+
+  async function loadInvites() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/invites');
+      const json = (await res.json()) as { data?: Invite[] };
+      setInvites(json.data ?? []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Load on mount
+  useEffect(() => { loadInvites(); }, []);
+
+  async function handleInvite(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), can_comment: canComment }),
+      });
+      const json = (await res.json()) as {
+        data?: { accept_url: string; email_sent: boolean };
+        error?: { message: string };
+      };
+      if (!res.ok) {
+        setFormError(json.error?.message ?? 'Failed to send invite.');
+        return;
+      }
+      if (json.data && !json.data.email_sent) {
+        setAcceptUrl(json.data.accept_url);
+      }
+      setEmail('');
+      setShowForm(false);
+      await loadInvites();
+    } catch {
+      setFormError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRevoke(id: string) {
+    setRevoking(id);
+    try {
+      await fetch(`/api/invites/${id}`, { method: 'DELETE' });
+      await loadInvites();
+    } finally {
+      setRevoking(null);
+    }
+  }
+
+  const activeInvites = invites.filter((i) => i.status !== 'revoked');
+  const hasActive = activeInvites.length > 0;
+
   return (
-    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-      <p className="text-sm font-medium text-slate-600">Coach Sharing</p>
-      <p className="text-xs text-slate-400 mt-1">Share read-only access with your coach — coming in Phase 3.</p>
+    <div className="space-y-5 max-w-md">
+      <div className="rounded-lg border border-slate-200 bg-white p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-slate-900">Coach Access</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Give a coach read-only access to your training data.
+            </p>
+          </div>
+          {!hasActive && !showForm && (
+            <Button
+              type="button"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+              onClick={() => setShowForm(true)}
+            >
+              Invite coach
+            </Button>
+          )}
+        </div>
+
+        {showForm && (
+          <form onSubmit={handleInvite} className="space-y-3 border-t border-slate-100 pt-4">
+            {formError && (
+              <div className="rounded bg-red-50 border border-red-200 p-2 text-xs text-red-700">
+                {formError}
+              </div>
+            )}
+            <div className="space-y-1">
+              <Label htmlFor="coach-email">Coach email</Label>
+              <Input
+                id="coach-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="coach@example.com"
+                required
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="can-comment"
+                type="checkbox"
+                checked={canComment}
+                onChange={(e) => setCanComment(e.target.checked)}
+                className="rounded border-slate-300"
+              />
+              <Label htmlFor="can-comment" className="text-sm font-normal cursor-pointer">
+                Allow coach to add comments
+              </Label>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { setShowForm(false); setFormError(null); }}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting || !email.trim()}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {submitting ? 'Sending…' : 'Send invite'}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {acceptUrl && (
+          <div className="rounded bg-amber-50 border border-amber-200 p-3 space-y-1">
+            <p className="text-xs font-medium text-amber-800">
+              Email not configured — share this link manually:
+            </p>
+            <p className="text-xs text-amber-700 break-all font-mono">{acceptUrl}</p>
+            <button
+              type="button"
+              className="text-xs text-amber-600 hover:underline"
+              onClick={() => { navigator.clipboard.writeText(acceptUrl); }}
+            >
+              Copy link
+            </button>
+          </div>
+        )}
+
+        {loading ? (
+          <p className="text-xs text-slate-400">Loading…</p>
+        ) : activeInvites.length > 0 ? (
+          <div className="space-y-2 border-t border-slate-100 pt-3">
+            {activeInvites.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center justify-between text-sm rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-800 truncate">{inv.invite_email}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                        inv.status === 'active'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {inv.status}
+                    </span>
+                    {inv.can_comment && (
+                      <span className="text-xs text-slate-400">can comment</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRevoke(inv.id)}
+                  disabled={revoking === inv.id}
+                  className="ml-3 text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+                >
+                  {revoking === inv.id ? '…' : 'Revoke'}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 border-t border-slate-100 pt-3">
+            No active or pending invites.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
