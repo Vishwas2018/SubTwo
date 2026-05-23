@@ -6,6 +6,8 @@ import { checkBudget, maybySendBudgetAlert } from '@/lib/ai/budget';
 import { persistGeneratedPlan } from '@/lib/plans/persist';
 import { rateLimit } from '@/lib/rate-limit';
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   // 1. Auth
   const supabase = await createClient();

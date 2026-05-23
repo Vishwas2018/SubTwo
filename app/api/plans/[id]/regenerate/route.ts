@@ -5,6 +5,8 @@ import { generatePlan, estimateCost } from '@/lib/ai/anthropic-client';
 import { checkBudget, maybySendBudgetAlert } from '@/lib/ai/budget';
 import { rateLimit } from '@/lib/rate-limit';
 
+export const maxDuration = 60;
+
 type QuotaResult = {
   allowed: boolean;
   lifetime_used: number;
