@@ -20,12 +20,15 @@ export default function UsersPage() {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
+  // Only updates state after async operations — safe to call from useEffect
   async function load() {
-    setLoading(true);
-    const res = await fetch('/api/admin/users');
-    const json = await res.json();
-    setUsers(json.data ?? []);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/admin/users');
+      const json = await res.json();
+      setUsers(json.data ?? []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -51,6 +54,7 @@ export default function UsersPage() {
       const j = await res.json();
       setError(j.error ?? 'Failed');
     }
+    setLoading(true);
     load();
   }
 

@@ -36,12 +36,15 @@ export default function InvitesPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Only updates state after async operations — safe to call from useEffect
   async function load() {
-    setLoading(true);
-    const res = await fetch('/api/admin/invites');
-    const json = await res.json();
-    setCodes(json.data ?? []);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/admin/invites');
+      const json = await res.json();
+      setCodes(json.data ?? []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -66,16 +69,17 @@ export default function InvitesPage() {
     }
     setNote('');
     setExpiresInDays('');
+    setLoading(true);
     load();
   }
 
-  async function handleRevoke(id: string) {
+  function handleRevoke(id: string) {
+    setLoading(true);
     startTransition(async () => {
       const res = await fetch(`/api/admin/invites/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const j = await res.json();
         setError(j.error ?? 'Failed to revoke');
-        return;
       }
       load();
     });
