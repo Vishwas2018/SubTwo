@@ -8,8 +8,8 @@ const SUPABASE_AVAILABLE = !!process.env.SUPABASE_URL;
 
 describe.skipIf(!SUPABASE_AVAILABLE)('Admin integration', () => {
   let svc: SupabaseClient;
-  let adminId: string;
-  let regularUserId: string;
+  let adminId = '';
+  let regularUserId = '';
   let regularAnonClient: SupabaseClient;
 
   const ADMIN_EMAIL = process.env.INITIAL_ADMIN_EMAIL ?? 'jvishu21@gmail.com';
@@ -113,7 +113,7 @@ describe.skipIf(!SUPABASE_AVAILABLE)('Admin integration', () => {
         .eq('id', codeId);
       expect(error).toBeNull();
       expect(data).toHaveLength(1);
-      expect(data![0].code).toBe(code);
+      expect((data ?? [])[0]?.code).toBe(code);
     });
 
     it('validate_invite_code returns true for the new code', async () => {
