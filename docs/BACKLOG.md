@@ -65,7 +65,7 @@
 | P3-06 | `audit_log` writes on sensitive actions                  | 🔵     |
 | P3-07 | Sentry error tracking                                    | 🔵     |
 | P3-08 | Coach sharing (invites + view + comments)                | 🟢     | Day 20 |
-| P3-09 | Admin console (invites, users, AI usage)                 | 🔵     |
+| P3-09 | Admin console (invites, users, AI usage)                 | 🟢     | Day 21 |
 | P3-10 | Error boundaries + empty states + skeletons              | 🟡     | DEF-008 fixed (error.tsx, global-error.tsx, not-found.tsx); skeletons remain |
 
 ## Phase 4 — Validation & Release

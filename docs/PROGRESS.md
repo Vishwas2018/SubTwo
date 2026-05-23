@@ -662,6 +662,43 @@
 
 ---
 
+## Day 21 — Phase 3 / Admin Console (P3-09)
+
+**Tasks completed:**
+
+- P3-09: `supabase/migrations/20260523000300_025_admin_suspended.sql` — adds `profiles.suspended boolean DEFAULT false`; `is_admin()` SECURITY DEFINER helper fn; applied to remote Supabase
+- P3-09: `types/database.types.ts` — `suspended` added to profiles Row/Insert/Update
+- P3-09: `middleware.ts` (project root) — wires Next.js edge middleware to `updateSession`; `/admin` is in PROTECTED_PREFIXES (unauthenticated → /login)
+- P3-09: `lib/auth/session.ts` — `requireAdmin()` now calls `notFound()` instead of `redirect('/dashboard')` (route hidden from non-admins); `requireUser()` checks `suspended` flag → redirects to /login
+- P3-09: `lib/auth/require-admin-api.ts` — `verifyAdminRequest()` helper: authenticates caller + checks is_admin via service client, returns 404 (not 403) for non-admins
+- P3-09: `app/(admin)/admin/layout.tsx` — server component; calls `requireAdmin()`; red admin banner + Invites/Users/AI Usage nav
+- P3-09: `app/(admin)/admin/page.tsx` — redirects to /admin/invites
+- P3-09: `app/api/admin/invites/route.ts` — GET (list all codes with computed status: active/used/expired) + POST (generate 8-char code, optional note + expires_in_days, 5-attempt collision retry)
+- P3-09: `app/api/admin/invites/[id]/route.ts` — DELETE (revoke unused code only; 409 if use_count > 0)
+- P3-09: `app/api/admin/users/route.ts` — GET (all profiles with plan_count + run_count via service client)
+- P3-09: `app/api/admin/users/[id]/route.ts` — PATCH `{ suspended: bool }` only; self-suspension blocked (400)
+- P3-09: `app/api/admin/ai-usage/route.ts` — GET reuses `get_monthly_ai_spend()` RPC + P3-03 caps; per-user aggregation (top 10) + last 20 generations
+- P3-09: `app/(admin)/admin/invites/page.tsx` — generate form + table with copy-to-clipboard; revoke button (unused active codes only)
+- P3-09: `app/(admin)/admin/users/page.tsx` — read-only table + two-click suspend/unsuspend confirm
+- P3-09: `app/(admin)/admin/ai-usage/page.tsx` — spend progress bars (soft/hard cap), per-user table, recent generations log
+
+**Tasks incomplete:** none
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 627/627 (31 files) · integration 106/109 (1 timeout ai-live TD-010, 2 skip cron BASE_URL TD-013) · all 12 new admin tests ✅ · typecheck ✅ · lint ✅
+
+**Visual:** STEP 6 — awaiting user walkthrough: log in as INITIAL_ADMIN_EMAIL → /admin; generate invite code; check /admin/users + /admin/ai-usage; complete Day 20 coach-sharing loop with new code
+
+**Commits:** pending
+
+**Blockers:** none
+**Next:** Day 22 — Phase 3 exit (Sentry / RLS audit / structured audit logging)
+
+---
+
 ## Template
 
 ```
