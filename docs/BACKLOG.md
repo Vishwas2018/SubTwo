@@ -60,8 +60,8 @@
 | P3-01 | Upstash rate limiting on auth + AI endpoints             | 🟢     | Day 17 |
 | P3-02 | Automated RLS audit script                               | 🔵     |
 | P3-03 | AI cost caps (lifetime + daily + monthly + admin alerts) | 🟢     | Day 18 |
-| P3-04 | Adjustment rules engine (6 rules)                        | 🔵     |
-| P3-05 | Nightly cron `/api/cron/adjustments`                     | 🔵     |
+| P3-04 | Adjustment rules engine (6 rules)                        | 🟢     | Day 19 |
+| P3-05 | Nightly cron `/api/cron/adjustments`                     | 🟢     | Day 19 |
 | P3-06 | `audit_log` writes on sensitive actions                  | 🔵     |
 | P3-07 | Sentry error tracking                                    | 🔵     |
 | P3-08 | Coach sharing (invites + view + comments)                | 🔵     |

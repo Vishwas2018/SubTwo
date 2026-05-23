@@ -594,6 +594,33 @@
 
 ---
 
+## Day 19 — Phase 3 / Adjustment Rules Engine + Nightly Cron
+
+**Tasks completed:**
+
+- P3-04: `lib/adjustment-rules.ts` — 6 deterministic pure rule functions: `checkMissedSessions` (≥2 missed key sessions/7d → deload next week), `checkRhrElevated` (RHR >5bpm above baseline × 3 consecutive days → deload quality), `checkNigglePersistent` (active niggle ≥5d → cross-train flag), `checkEasyTooFast` (last 3 easy runs within 7s/km of threshold ceiling → advisory), `checkSleepDeficit` (<7h avg/3 checkins → 20% quality reduction), `checkCheckpointRed` (latest checkpoint red → flag + offer regen, no auto-AI per ADR-008); `evaluateAdjustments(ctx)` aggregator; exported threshold constants
+- P3-04: `lib/adjustments/apply.ts` — `applyAdjustment(planId, action)`: idempotent (7-day dedup on same trigger), stores `original_values` in change_details for revert; applies deload-next-week, deload-next-quality, reduce-quality-20%; `revertAdjustment(adjId, planId)`: restores original session values, sets user_override=true
+- P3-05: `app/api/cron/adjustments/route.ts` — POST, CRON_SECRET bearer auth (401 without), loads all active plans, evaluates all 6 rules per plan, applies + logs to audit_log; returns `{plans_checked, adjustments_applied}`
+- P3-05: `vercel.json` — daily cron `0 17 * * *` UTC (3am AEST); `/api/cron/adjustments`
+- P3-04: `app/api/plans/[id]/adjustments/route.ts` — GET list (auth + ownership)
+- P3-04: `app/api/plans/[id]/adjustments/[adjId]/override/route.ts` — POST override (revert + flag); 409 if already overridden
+- P3-04: `app/(app)/plan/adjustments/page.tsx` + `adjustments-client.tsx` — server + client; lists adjustments by trigger type with colour badges + [Revert] button; empty state if none
+
+**Tasks incomplete:** none
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** none
+
+**Test status:** unit 615/615 (30 files) · integration 80/82 (1 timeout ai-live.test.ts TD-010, 2 skip cron endpoint no BASE_URL) · coverage lib/adjustment-rules.ts 100% stmts/funcs/lines/branches · typecheck ✅ · lint ✅ (0 errors)
+
+**Commits:** 5bdefe9
+
+**Blockers:** none
+**Next:** Day 20 — Coach sharing (P3-08)
+
+---
+
 ## Template
 
 ```
