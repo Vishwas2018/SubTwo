@@ -173,7 +173,7 @@ type Invite = {
 
 function SharingTab() {
   const [invites, setInvites] = useState<Invite[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // starts true; only set false after first load
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [canComment, setCanComment] = useState(true);
@@ -183,7 +183,6 @@ function SharingTab() {
   const [revoking, setRevoking] = useState<string | null>(null);
 
   async function loadInvites() {
-    setLoading(true);
     try {
       const res = await fetch('/api/invites');
       const json = (await res.json()) as { data?: Invite[] };

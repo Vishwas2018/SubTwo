@@ -5,6 +5,10 @@ import { createServiceClient } from '@/lib/supabase/server';
 
 const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1_000;
 
+function isTokenExpired(invitedAt: string): boolean {
+  return Date.now() - new Date(invitedAt).getTime() > TOKEN_EXPIRY_MS;
+}
+
 export default async function InviteAcceptPage({
   params,
 }: {
@@ -40,7 +44,7 @@ export default async function InviteAcceptPage({
     );
   }
 
-  if (Date.now() - new Date(invite.invited_at).getTime() > TOKEN_EXPIRY_MS) {
+  if (isTokenExpired(invite.invited_at)) {
     return (
       <ErrorCard
         title="Invite expired"
@@ -55,9 +59,9 @@ export default async function InviteAcceptPage({
         <div className="max-w-md w-full rounded-xl border border-slate-200 bg-white p-8 space-y-6 shadow-sm">
           <div className="text-center space-y-2">
             <div className="text-3xl">🏃</div>
-            <h1 className="text-xl font-semibold text-slate-900">You've been invited</h1>
+            <h1 className="text-xl font-semibold text-slate-900">You&apos;ve been invited</h1>
             <p className="text-slate-500 text-sm">
-              You've been invited to view an athlete's training plan on SubTwo as a coach.
+              You&apos;ve been invited to view an athlete&apos;s training plan on SubTwo as a coach.
             </p>
           </div>
           <div className="space-y-3">

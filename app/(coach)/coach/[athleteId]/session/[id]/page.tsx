@@ -136,7 +136,7 @@ export default async function CoachSessionPage({
           href={`/coach/${athleteId}/plan`}
           className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1"
         >
-          ← Back to {athleteName}'s plan
+          ← Back to {athleteName}&apos;s plan
         </Link>
 
         <div className="space-y-1">
