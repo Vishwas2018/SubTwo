@@ -55,12 +55,16 @@ export async function POST(req: Request) {
     return NextResponse.json(GENERIC_INVALID_INVITE, { status: 400 });
   }
 
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
   const supabase = await createClient();
   const { error: otpErr } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/auth/callback?invite=${invite_code}`,
+      emailRedirectTo: `${appUrl}/auth/callback?invite=${invite_code}`,
     },
   });
 
