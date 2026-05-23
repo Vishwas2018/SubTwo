@@ -24,6 +24,7 @@
 | TD-008 | OAuth tokens stored as plain TEXT, not encrypted           | Medium   | Supabase Vault requires Phase 3 setup; no integrations active in Phase 1 | Phase 3 (before P5-01 Strava OAuth)                 |
 | TD-010 | ai-live.test.ts hangs in vitest worker (corporate proxy; `--use-system-ca` not inherited by worker subprocess); live gate via `scripts/live-test.ts` | Medium | CA not in Node bundle | Phase 4 |
 | TD-012 | CSP uses 'unsafe-inline' (weakens XSS protection) | Medium | Nonce infra requires proxy/middleware refactor, forces dynamic rendering | Before public launch |
+| TD-013 | 2 cron integration tests skipped (need BASE_URL env in test) | Low | Cron route needs absolute URL; BASE_URL not set in test env | Phase 4 — set BASE_URL in test env |
 ---
 
 ## Paid

@@ -621,6 +621,47 @@
 
 ---
 
+## Day 20 — Phase 3 / Coach Sharing (P3-08)
+
+**Pre-work:** TD-013 logged (2 cron integration tests skipped — need BASE_URL env)
+
+**Tasks completed:**
+
+- P3-08: `supabase/migrations/20260523000100_run_owner_reads_comments.sql` — adds `run_owner_reads_comments` SELECT policy on `run_comments`; athletes can read coach comments on their own runs (gap in Phase 1 RLS)
+- P3-08: `supabase/migrations/20260523000200_fix_comment_insert_policy.sql` — replaces `author_owns_comment FOR ALL` with three scoped policies (SELECT/UPDATE/DELETE) + new `run_owner_can_comment` INSERT policy; closes INSERT-without-access gap; both migrations pushed to remote Supabase via `supabase db push`
+- P3-08: `app/api/invites/route.ts` — POST (create invite: rate-limited with `invite` limiter 5/24h, one-coach-per-athlete check, UUID token, Resend email or console.log + returns accept_url) + GET (list athlete's invites)
+- P3-08: `app/api/invites/[id]/route.ts` — DELETE (revoke: athlete-only via RLS, sets status=revoked + revoked_at)
+- P3-08: `app/invite/accept/[token]/page.tsx` — server component; validates token (exists/pending/not-expired 7d); if logged-in: accepts (viewer_id=me, status=active, accepted_at, clears token) → redirects /coach; if not logged-in: shows login/signup card; if expired/used/own: error card
+- P3-08: `app/api/runs/[id]/comments/route.ts` — GET (list comments, RLS-scoped) + POST (single-line Zod validation, rate-limited api_write, RLS enforces viewer can_comment)
+- P3-08: `app/(app)/session/[id]/comments-section.tsx` — `CommentsSection` client component (shared between athlete + coach session pages); fetches-then-posts; shows You/Coach labels; single-line input
+- P3-08: `app/(app)/session/[id]/page.tsx` — replaces comments stub with `CommentsSection` (canComment=true for athlete); fetches initial comments server-side; shows "Log a run to enable comments" for rest sessions
+- P3-08: `app/(app)/plan/plan-table.tsx` — adds optional `baseSessionHref` prop (default `/session`) so coach plan page can link to `/coach/[id]/session`
+- P3-08: `app/(coach)/layout.tsx` — requires auth + active viewer_access; redirects to /dashboard if no access
+- P3-08: `app/(coach)/coach/page.tsx` — lists athletes this viewer can access; service client for profile reads (self_read RLS blocks cross-user); shows can-comment badge
+- P3-08: `app/(coach)/coach/[athleteId]/page.tsx` — read-only dashboard; amber "Viewing as coach · read-only" banner; active plan summary + recent runs via RLS viewer_read_access; link to full plan
+- P3-08: `app/(coach)/coach/[athleteId]/plan/page.tsx` — read-only plan calendar (PlanTable with coach session links)
+- P3-08: `app/(coach)/coach/[athleteId]/session/[id]/page.tsx` — read-only session detail with actual run; CommentsSection (canComment from viewer_access)
+- P3-08: `app/(app)/settings/settings-client.tsx` — SharingTab replaced with real invite UI: fetch-on-mount GET /api/invites, inline Invite coach form (email + can_comment checkbox), accept_url display when Resend absent, status badges, Revoke button per invite
+- P3-08: `tests/integration/coach-sharing.integration.test.ts` — 16 integration tests: invite creation, non-owner blocked, accept flow, viewer reads athlete runs (RLS), viewer cannot mutate athlete data, coach comment insert, athlete reads coach comment (run_owner_reads_comments), other user blocked from comment, revoke kills access, expired-token checks (service-layer)
+- P3-08: `tests/unit/settings/settings.test.tsx` — updated "switches to Sharing tab" test to mock GET /api/invites and check new "Coach Access" UI
+
+**Tasks incomplete:** none
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** TD-013 (cron integration 2 tests skipped — BASE_URL not set in test env; scheduled Phase 4)
+
+**Test status:** unit 615/615 (30 files) · integration 95/98 (1 timeout ai-live TD-010, 2 skip cron BASE_URL TD-013) · typecheck ✅ · lint ✅
+
+**Visual:** STEP 7 — awaiting user walkthrough (Settings → Sharing, invite a test email; if Resend absent copy accept_url from response; open in incognito, accept, view /coach/[id] read-only, post a comment)
+
+**Commits:** pending
+
+**Blockers:** none
+**Next:** Day 21 — Admin console (P3-09)
+
+---
+
 ## Template
 
 ```
