@@ -27,7 +27,7 @@ const LIMITER_TYPE: Record<LimiterName, LimiterType> = {
 const MEMORY_CONFIG: Record<LimiterName, { max: number; windowMs: number }> = {
   signup:       { max: 5,   windowMs: 60 * 60 * 1_000 },
   login:        { max: 5,   windowMs: 60 * 60 * 1_000 },
-  ai_generation:{ max: 20,  windowMs: 24 * 60 * 60 * 1_000 },
+  ai_generation:{ max: 3,   windowMs: 24 * 60 * 60 * 1_000 },
   api_write:    { max: 30,  windowMs: 60 * 1_000 },
   api_read:     { max: 100, windowMs: 60 * 1_000 },
   export:       { max: 1,   windowMs: 60 * 60 * 1_000 },
@@ -59,7 +59,7 @@ function getLimiters(): Record<LimiterName, Ratelimit> {
     _limiters = {
       signup:        new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(5,   '1 h'),  prefix: 'rl:signup' }),
       login:         new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(5,   '1 h'),  prefix: 'rl:login' }),
-      ai_generation: new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(20,  '24 h'), prefix: 'rl:ai' }),
+      ai_generation: new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(3,   '24 h'), prefix: 'rl:ai' }),
       api_write:     new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(30,  '1 m'),  prefix: 'rl:write' }),
       api_read:      new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(100, '1 m'),  prefix: 'rl:read' }),
       export:        new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(1,   '1 h'),  prefix: 'rl:export' }),
