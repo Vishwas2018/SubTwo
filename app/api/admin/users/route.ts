@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data: profiles, error } = await svc
     .from('profiles')
-    .select('id, email, display_name, is_admin, suspended, created_at')
+    .select('id, email, display_name, is_admin, is_coach, suspended, created_at')
     .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

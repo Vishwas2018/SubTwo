@@ -7,6 +7,7 @@ type User = {
   email: string;
   display_name: string | null;
   is_admin: boolean;
+  is_coach: boolean;
   suspended: boolean;
   created_at: string;
   plan_count: number;
@@ -32,6 +33,18 @@ export default function UsersPage() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function toggleCoach(user: User) {
+    setBusy(user.id);
+    await fetch(`/api/admin/users/${user.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_coach: !user.is_coach }),
+    });
+    setBusy(null);
+    setLoading(true);
+    load();
+  }
 
   async function toggleSuspend(user: User) {
     if (!confirming) {
@@ -89,6 +102,9 @@ export default function UsersPage() {
                     {u.is_admin && (
                       <span className="text-xs text-red-600 font-medium">admin</span>
                     )}
+                    {u.is_coach && (
+                      <span className="ml-1 text-xs text-blue-600 font-medium">coach</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-600">{u.plan_count}</td>
                   <td className="px-4 py-3 text-gray-600">{u.run_count}</td>
@@ -106,7 +122,16 @@ export default function UsersPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 space-x-3">
+                    {!u.is_admin && (
+                      <button
+                        onClick={() => toggleCoach(u)}
+                        disabled={busy === u.id}
+                        className="text-xs text-blue-500 hover:underline disabled:opacity-50"
+                      >
+                        {u.is_coach ? 'Remove coach' : 'Make coach'}
+                      </button>
+                    )}
                     {!u.is_admin && (
                       <button
                         onClick={() => toggleSuspend(u)}
