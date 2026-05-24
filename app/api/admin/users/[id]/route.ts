@@ -37,7 +37,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid request' }, { status: 422 });
   }
 
-  const updatePayload: Record<string, boolean> = {};
+  const updatePayload: { suspended?: boolean; is_coach?: boolean } = {};
   if (parsed.data.suspended !== undefined) updatePayload.suspended = parsed.data.suspended;
   if (parsed.data.is_coach !== undefined) updatePayload.is_coach = parsed.data.is_coach;
 

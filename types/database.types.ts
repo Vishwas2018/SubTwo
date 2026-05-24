@@ -642,6 +642,7 @@ export type Database = {
           id: string
           invite_code_used: string | null
           is_admin: boolean
+          is_coach: boolean
           suspended: boolean
           timezone: string
           updated_at: string
@@ -654,6 +655,7 @@ export type Database = {
           id: string
           invite_code_used?: string | null
           is_admin?: boolean
+          is_coach?: boolean
           suspended?: boolean
           timezone?: string
           updated_at?: string
@@ -666,6 +668,7 @@ export type Database = {
           id?: string
           invite_code_used?: string | null
           is_admin?: boolean
+          is_coach?: boolean
           suspended?: boolean
           timezone?: string
           updated_at?: string
