@@ -46,6 +46,6 @@ const nextConfig: NextConfig = {
 export default withSentryConfig(nextConfig, {
   silent: true,
   tunnelRoute: '/api/sentry-tunnel',
-  disableLogger: true,
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  webpack: { treeshake: { removeDebugLogging: true } },
 });
