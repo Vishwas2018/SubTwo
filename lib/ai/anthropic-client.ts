@@ -92,6 +92,8 @@ export async function generatePlan(
     opts.client ??
     new Anthropic({
       apiKey: opts.apiKey ?? process.env.ANTHROPIC_API_KEY,
+      maxRetries: 0,   // our retry loop handles retries; SDK retries would multiply latency
+      timeout: 50_000, // 50s — leaves 10s buffer before Vercel's 60s maxDuration ceiling
       ...(opts.fetchImpl ? { fetch: opts.fetchImpl } : {}),
     });
 

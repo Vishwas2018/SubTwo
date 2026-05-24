@@ -3,7 +3,7 @@ import type { WizardInput } from '@/lib/schemas';
 import type { PlanSkeleton } from '@/lib/schemas/plan';
 
 export const SYSTEM_PROMPT_VERSION = '1.0';
-export const MAX_OUTPUT_TOKENS = 16000;
+export const MAX_OUTPUT_TOKENS = 8192;
 
 export const SYSTEM_PROMPT = `You are an elite endurance coach and exercise physiologist with 20+ years of experience preparing athletes for distance running events from 5K to ultramarathons. Generate a personalized, evidence-based training plan as JSON.
 
