@@ -765,6 +765,45 @@
 
 ---
 
+## Day 26 — Beta Readiness / First-Run Polish
+
+**Goal:** Make the app survivable for people who aren't the developer — onboarding clarity, error visibility, and a feedback channel.
+
+**STEP 1 — Invite-gate sanity:** No code change needed; `validate_invite_code` RPC enforced on signup, generic 400 on invalid/reused codes, Upstash rate-limiting on auth endpoints ✅
+
+**STEP 2 — Onboarding sweep:**
+- Dashboard cold states already correct: EmptyState component with CTA ✅
+- Wizard loading state: animated progress + step messages ✅
+- Wizard `catch` block: added `captureException` via dynamic Sentry import ✅
+- Quota error: fixed stale "10 generations" copy → "limit reached" + `mailto:` link to admin ✅
+
+**STEP 3 — Error visibility:**
+- Coach error boundary: already exists at `app/(coach)/coach/error.tsx` with Sentry capture ✅
+- Root + admin + app error boundaries: all present + wired ✅
+- Sentry added to wizard generation catch (was missing) ✅
+
+**STEP 4 — Beta feedback channel:**
+- Added "Beta feedback → Send feedback" `mailto:` card to `/settings` (visible on all tabs) ✅
+- No external service or new route needed
+
+**STEP 5 — Tests + CI:**
+- Unit + integration: **749/751 pass** (2 pre-existing failures: `ai-live.test.ts` [no API key in test env], `cron-adjustments.integration.test.ts` [DB null read — flaky, not caused by Day 26 changes])
+- TypeScript: `tsc --noEmit` clean ✅
+- No stray `console.log` in app/ or lib/ (1 intentional `console.warn` in rate-limit degradation path)
+
+**Files changed:**
+- `components/wizard/steps/step7-generating.tsx` — quota message copy + admin email `mailto:` link
+- `app/onboarding/wizard/page.tsx` — Sentry `captureException` in fetch catch block
+- `app/(app)/settings/settings-client.tsx` — beta feedback card (footer, all tabs)
+
+**STEP 6 — Visual check:** User to execute new-user flow in incognito (signup with invite code → wizard → plan → settings feedback link)
+
+**Test status:** 749/751 (2 pre-existing) · typecheck ✅ · lint ✅
+**Blockers:** none
+**Next:** STEP 6 visual check (user), then Phase 4 P4-01 Playwright E2E
+
+---
+
 ## Day 24 — Phase 4 / Vercel Env Audit (P4-02)
 
 **STEP 1 — Env audit (complete inventory):**

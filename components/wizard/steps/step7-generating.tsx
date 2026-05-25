@@ -51,9 +51,20 @@ export function Step7Generating({ error, onRetry }: Props) {
           {isQuota ? 'Generation limit reached' : 'Something went wrong'}
         </h2>
         <p className="text-sm text-slate-500 max-w-sm mx-auto" role="alert">
-          {isQuota
-            ? 'All 10 generations used. Contact admin for more.'
-            : error}
+          {isQuota ? (
+            <>
+              Your plan generation limit has been reached.{' '}
+              <a
+                href="mailto:vishwas.joshi01@gmail.com?subject=SubTwo%20%E2%80%94%20generation%20limit"
+                className="text-emerald-600 hover:underline"
+              >
+                Contact the admin
+              </a>{' '}
+              to request more.
+            </>
+          ) : (
+            error
+          )}
         </p>
         {!isQuota && onRetry && (
           <button

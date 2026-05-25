@@ -532,6 +532,19 @@ export function SettingsClient({
       {tab === 'integrations' && <IntegrationsTab />}
       {tab === 'sharing' && <SharingTab />}
       {tab === 'data' && <DataTab email={profile.email} />}
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 flex items-center justify-between max-w-md">
+        <div>
+          <p className="text-sm font-medium text-slate-700">Beta feedback</p>
+          <p className="text-xs text-slate-400 mt-0.5">Found a bug or have a suggestion?</p>
+        </div>
+        <a
+          href="mailto:vishwas.joshi01@gmail.com?subject=SubTwo%20Beta%20Feedback"
+          className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline font-medium"
+        >
+          Send feedback
+        </a>
+      </div>
     </div>
   );
 }

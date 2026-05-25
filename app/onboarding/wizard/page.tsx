@@ -97,7 +97,8 @@ export default function WizardPage() {
       }
 
       router.push(`/onboarding/review?plan=${planId}`);
-    } catch {
+    } catch (err) {
+      import('@sentry/nextjs').then(({ captureException }) => captureException(err));
       setSubmitError('Network error. Check your connection and try again.');
       setIsSubmitting(false);
     }
