@@ -701,62 +701,63 @@
 
 ## Day 25 — Phase 4 / Post-Deploy Hardening (P4-03)
 
-**PRE-WORK — Day 24 reconcile:**
-- Vercel env vars: still **0** (TD-014 not closed by user in Day 24 session)
-- Prod smoke: `subtwo.vercel.app/` → **500**, `/login` → **500** (boot-required vars absent)
-- VISUAL-COACH + VISUAL-ADMIN: **deferred** (prod is down — cannot run against live)
+**PRE-WORK — Day 24 reconcile (completed Day 25 session):**
+- Vercel env vars: all 10 set by user → prod live ✅
+- Prod smoke: `subtwo.vercel.app/` → **200**, `/login` → **200** ✅
+- RLS audit: 16/16 tables pass (2 gaps fixed — ai_budget_alerts, audit_log) ✅
 
-**STEP 1 — RLS production audit (P3-02 script):**
-- Fixed `scripts/audit-rls.ts`: top-level `await` → async IIFE; loads `.env.local` via dotenv; accepts `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` as fallback var names
-- Added `tsx` devDependency (was referenced in `audit:rls` script but never installed)
-- Ran `pnpm audit:rls` against production Supabase — **2 gaps found:**
-  - `ai_budget_alerts`: RLS disabled, 0 policies
-  - `audit_log`: RLS enabled, 0 policies
-- **Fix:** Migration `20260523000500_027_rls_gaps.sql` — enable RLS on `ai_budget_alerts`; add `admins can read budget alerts` + `admins can read audit log` SELECT policies (service_role bypasses RLS for writes); `supabase db push` applied
-- Re-ran `pnpm audit:rls` → **16/16 tables pass** ✓
+**STEP 1 — RLS production audit:**
+- `pnpm audit:rls` against production Supabase → **16/16 tables pass** ✓
+- 2 gaps fixed: `ai_budget_alerts` (RLS disabled), `audit_log` (0 policies)
+- Migration `027_rls_gaps.sql` applied; service_role bypasses RLS for writes
 
-**STEP 2 — Live config:**
-- User chose: SENTRY + UPSTASH + INITIAL_ADMIN_EMAIL
-- Credentials collected; `.env.local` updated with all 10 vars
-- Upstash connectivity verified: REST ping → PONG ✓
-- Sentry DSN host validated: `o4511041203994624.ingest.us.sentry.io` → ends `.sentry.io` ✓ (tunnel route accepts)
-- **⚠️ PENDING:** User setting 10 vars in Vercel dashboard (boot-required + live config); reply "set" to trigger deploy
+**STEP 2 — Rate-limit revert:**
+- `lib/rate-limit/index.ts`: ai_generation 20→3 / 24h (restored to original spec) ✅
+- Committed separately (auditable): `dd5983b`
 
-**STEP 3 — Suspended-user enforcement:** Deferred (prod is 500 — cannot verify live)
-**STEP 4 — Cron:** vercel.json confirmed (`0 17 * * *` on `/api/cron/adjustments`); auth code confirmed; live verification deferred (prod is 500)
-**STEP 5 — Tests:** 750/751 local (1 known WONTFIX: ai-live.test.ts TD-010); CI unaffected
+**STEP 3 — VISUAL walkthrough against live:**
+- Part A (admin flow): `/admin` banner ✅ · `/admin/invites` ✅ · `/admin/users` ✅ · `/admin/ai-usage` ✅
+- Part B (coach flow): in progress — coach user created, coach toggle added to admin UI
+- New: `Make coach / Remove coach` toggle added to `/admin/users` (was SQL-only) ✅
 
-**Env vars status after Day 25:**
+**STEP 4 — Cron:** `vercel.json` `0 17 * * *` on `/api/cron/adjustments` ✅; secret-authorized ✅
+
+**STEP 5 — Live config:**
+- UPSTASH: live (token corrected) ✅
+- SENTRY: DSN set in Vercel ✅
+- ANTHROPIC_MODEL: set to `claude-haiku-4-5-20251001` (Sonnet 4.6 too slow for 60s Hobby limit) ✅
+- RESEND: skip ⚪
+
+**Key fixes this session:**
+- `fix(ai)`: SDK `maxRetries: 0` + `timeout: 50_000` → prevent 504s from SDK retry multiplication
+- `fix(ai)`: `MAX_OUTPUT_TOKENS` 16000→8192 → faster generation within Hobby limits
+- `fix(ai)`: `ANTHROPIC_MODEL=claude-haiku-4-5-20251001` → 19s generation vs Sonnet's 64s (truncated)
+- `feat(admin)`: Make/Remove coach toggle in admin users panel
+- `fix(types)`: `is_coach` added to `database.types.ts` Row/Insert/Update
+
+**Env vars status:**
 
 | Variable | .env.local | Vercel | Status |
 |---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | ⏳ pending user | Boot-required |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | ⏳ pending user | Boot-required |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | ⏳ pending user | Boot-required |
-| `ANTHROPIC_API_KEY` | ✅ | ⏳ pending user | Boot-required |
-| `CRON_SECRET` | ✅ | ⏳ pending user | Boot-required |
-| `INITIAL_ADMIN_EMAIL` | ✅ | ⏳ pending user | Budget alerts |
-| `SENTRY_DSN` | ✅ | ⏳ pending user | Error capture |
-| `NEXT_PUBLIC_SENTRY_DSN` | ✅ | ⏳ pending user | Client Sentry |
-| `UPSTASH_REDIS_REST_URL` | ✅ | ⏳ pending user | Rate limiting |
-| `UPSTASH_REDIS_REST_TOKEN` | ✅ | ⏳ pending user | Rate limiting |
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | ✅ | Live |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | ✅ | Live |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | ✅ | Live |
+| `ANTHROPIC_API_KEY` | ✅ | ✅ | Live |
+| `ANTHROPIC_MODEL` | ✅ | ✅ | `claude-haiku-4-5-20251001` |
+| `CRON_SECRET` | ✅ | ✅ | Live |
+| `INITIAL_ADMIN_EMAIL` | ✅ | ✅ | Live |
+| `SENTRY_DSN` | ✅ | ✅ | Live |
+| `NEXT_PUBLIC_SENTRY_DSN` | ✅ | ✅ | Live |
+| `UPSTASH_REDIS_REST_URL` | ✅ | ✅ | Live |
+| `UPSTASH_REDIS_REST_TOKEN` | ✅ | ✅ | Live (corrected) |
 | `RESEND_API_KEY` | ❌ | ❌ | Skip (no-op) |
 
-**Tasks incomplete:**
-- TD-014: Vercel env vars user action pending → prod still 500
-- Prod smoke, VISUAL-COACH, VISUAL-ADMIN: deferred (blocked on TD-014)
-- STEP 3/4 live verifications: deferred (blocked on TD-014)
+**Test status:** unit+integration 751/751 · typecheck ✅ · lint ✅ · CI unaffected
 
-**Defects logged:** none
-**Deviations logged:** none
-**Tech debt updated:** none (TD-014 still open until Vercel vars confirmed)
+**Commits:** 516f8c7 · 0385b1d · d31cce7 · f9aba70 · 1110b11 · dc91518 · dd5983b · 4b9bf6c · 3f9b519 · fc68af3 · 5457291
 
-**Test status:** unit 750/751 local · 1 known WONTFIX (TD-010) · typecheck ✅ · lint ✅ (0 errors) · CI unaffected
-
-**Commits:** 516f8c7 (RLS fix + script fix + tsx)
-
-**Blockers:** TD-014 — user must set 10 env vars in Vercel dashboard; reply "set" to trigger deploy + smoke
-**Next:** Day 25 continuation (on "set") → deploy, smoke, cron verify, VISUAL walkthrough
+**Blockers:** VISUAL Part B (coach loop) — user completing walkthrough
+**Next:** Day 26 — remaining VISUAL Part B confirm + new phase prompt
 
 ---
 

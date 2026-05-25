@@ -81,6 +81,14 @@
 | P4-07 | Runbooks (incident response, key rotation, restore)         | 🔵     |
 | P4-08 | Production deploy + first invite codes generated            | 🔵     |
 
+## Phase 5 — AI & Infra Improvements (deferred from P4)
+
+| ID     | Task                                                                                                        | Status | Notes                                   |
+| ------ | ----------------------------------------------------------------------------------------------------------- | ------ | --------------------------------------- |
+| P5-AI1 | Multi-provider AI selection (Sonnet/Haiku/Opus via env or per-request) — currently hardcoded via ANTHROPIC_MODEL env var | ⚪ deferred | Day 25: Haiku forced due to Vercel Hobby 60s limit; Sonnet viable on Pro plan |
+| P5-AI2 | Upgrade Vercel plan (Pro) → raise maxDuration to 300s → re-enable Sonnet 4.6 for plan generation            | ⚪ deferred | Hobby ceiling is root cause of Haiku fallback |
+| P5-AI3 | Fix cost logging: `SONNET_PRICING` constant used regardless of model — incorrect for Haiku pricing           | ⚪ deferred | Low cost impact now; fix if model changes |
+
 ## Phase 5 — Strava (optional v1)
 
 | ID    | Task                                 | Status |
