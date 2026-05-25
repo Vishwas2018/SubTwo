@@ -756,8 +756,12 @@
 
 **Commits:** 516f8c7 · 0385b1d · d31cce7 · f9aba70 · 1110b11 · dc91518 · dd5983b · 4b9bf6c · 3f9b519 · fc68af3 · 5457291
 
-**Blockers:** VISUAL Part B (coach loop) — user completing walkthrough
-**Next:** Day 26 — remaining VISUAL Part B confirm + new phase prompt
+**VISUAL walkthrough result (LIVE against https://subtwo.vercel.app):**
+- Part A — Admin: `/admin` banner ✅ · `/admin/invites` generate+copy ✅ · `/admin/users` real users + Make Coach toggle ✅ · `/admin/ai-usage` ✅
+- Part B — Coach: Settings→Sharing→invite coach ✅ · incognito signup + accept URL ✅ · `/coach` athlete list ✅ · `/coach/[id]` read-only plan + "Viewing as coach · read-only" banner ✅ · session with run → comment posted ✅ · athlete sees comment ✅
+
+**Blockers:** none
+**Next:** Day 26
 
 ---
 
