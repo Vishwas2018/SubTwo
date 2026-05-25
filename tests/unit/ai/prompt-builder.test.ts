@@ -58,7 +58,7 @@ const ADVANCED_INPUT: WizardInput = {
 describe('SYSTEM_PROMPT', () => {
   it('exports version and token constant', () => {
     expect(SYSTEM_PROMPT_VERSION).toBe('1.0');
-    expect(MAX_OUTPUT_TOKENS).toBe(16000);
+    expect(MAX_OUTPUT_TOKENS).toBe(8192);
   });
 
   it('contains deload methodology marker', () => {
