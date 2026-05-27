@@ -13,3 +13,6 @@ dist/
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+playwright/.auth/
+playwright-report/
+test-results/

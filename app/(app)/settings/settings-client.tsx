@@ -503,7 +503,7 @@ export function SettingsClient({
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="flex gap-1 rounded-lg bg-slate-100 p-1 w-fit overflow-x-auto">
+      <div className="flex gap-1 rounded-lg bg-slate-100 p-1 max-w-full overflow-x-auto">
         {tabs.map((t) => (
           <button
             key={t.id}

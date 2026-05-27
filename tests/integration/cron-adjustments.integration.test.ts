@@ -127,20 +127,15 @@ describe.skipIf(!SUPABASE_AVAILABLE)('plan_adjustments DB integration', () => {
       await svc.from('plan_adjustments').delete().eq('id', adjId);
     });
 
-    // Revert
-    const { error: updErr } = await svc
+    // Revert — chain .select() onto the UPDATE so read-back is atomic
+    const { data: updated, error: updErr } = await svc
       .from('plan_adjustments')
       .update({ user_override: true })
-      .eq('id', adjId);
-
-    expect(updErr).toBeNull();
-
-    const { data: updated } = await svc
-      .from('plan_adjustments')
-      .select('user_override')
       .eq('id', adjId)
+      .select('user_override')
       .single();
 
+    expect(updErr).toBeNull();
     expect(updated!.user_override).toBe(true);
   });
 

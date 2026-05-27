@@ -260,7 +260,7 @@ function Trends4w({ trends }: { trends: DashboardData['trends_4w'] }) {
     <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-5">
       <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">4-Week Trends</p>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Volume */}
         <div>
           <p className="text-xs text-slate-500 mb-2">Weekly km</p>

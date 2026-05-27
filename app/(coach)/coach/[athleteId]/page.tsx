@@ -94,7 +94,7 @@ export default async function CoachAthletePage({
           </h2>
           {plan ? (
             <div className="space-y-3">
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
                 <dt className="text-slate-500">Race</dt>
                 <dd className="font-medium text-slate-800">
                   {plan.race_name ?? distanceLabel(plan.race_distance_km)}
@@ -136,12 +136,12 @@ export default async function CoachAthletePage({
           {recentRuns.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {recentRuns.map((run) => (
-                <div key={run.id} className="py-2 flex items-center justify-between text-sm">
+                <div key={run.id} className="py-2 flex items-start justify-between gap-2 text-sm">
                   <div>
                     <span className="font-medium text-slate-800">{run.distance_km} km</span>
                     <span className="text-slate-400 ml-2">{formatDate(run.run_date)}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-500">
+                  <div className="flex items-center gap-2 text-slate-500 shrink-0">
                     {run.avg_pace_seconds && (
                       <span className="font-mono text-xs">
                         {secondsToTimeString(run.avg_pace_seconds)} /km

@@ -30,7 +30,7 @@ export function Step5Constraints({ data, onChange }: Props) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="days_per_week">Training days per week</Label>
           <Select

@@ -180,7 +180,7 @@ export function LogForm({ defaultDate, defaultSessionId, sessions }: Props) {
       </div>
 
       {/* HR + Elevation */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label htmlFor="avg-hr">Avg HR (bpm)</Label>
           <Input
