@@ -48,6 +48,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -81,7 +83,9 @@
   --chart-3: oklch(0.580 0.080 155);
   --chart-4: oklch(0.580 0.080 295);
   --chart-5: oklch(0.500 0.030 60);
-  --radius: 0.625rem;
+  --radius: 0.9rem;
+  --shadow-card: 0 0 0 1px oklch(0.200 0.020 60 / 0.10), 0 2px 6px 0 oklch(0.200 0.020 60 / 0.08);
+  --shadow-float: 0 0 0 1px oklch(0.200 0.020 60 / 0.06), 0 8px 24px 0 oklch(0.200 0.020 60 / 0.12), 0 2px 8px 0 oklch(0.200 0.020 60 / 0.08);
   --sidebar: oklch(0.970 0.010 80);
   --sidebar-foreground: oklch(0.200 0.020 60);
   --sidebar-primary: oklch(0.400 0.110 38);
