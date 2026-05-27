@@ -10,18 +10,18 @@ const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAYS = [1, 2, 3, 4, 5, 6, 7];
 
 const PHASE_COLORS: Record<string, string> = {
-  base: 'bg-blue-100 text-blue-800',
-  build: 'bg-orange-100 text-orange-800',
-  peak: 'bg-red-100 text-red-800',
-  taper: 'bg-green-100 text-green-800',
+  base: 'bg-amber-50 text-amber-700',
+  build: 'bg-orange-100 text-orange-700',
+  peak: 'bg-red-100 text-red-700',
+  taper: 'bg-teal-50 text-teal-700',
 };
 
 const CELL_COLORS: Record<string, string> = {
-  completed: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  today: 'bg-blue-100 text-blue-800 border-blue-400 ring-2 ring-blue-400',
-  missed: 'bg-red-100 text-red-700 border-red-300',
-  future: 'bg-slate-50 text-slate-700 border-slate-200',
-  rest: 'bg-slate-100 text-slate-400 border-slate-200',
+  completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  today: 'bg-sky-100 text-sky-800 border-sky-400 ring-2 ring-sky-400',
+  missed: 'bg-red-50 text-red-600 border-red-200',
+  future: 'bg-stone-50 text-stone-600 border-stone-200',
+  rest: 'bg-stone-50 text-stone-400 border-stone-100',
 };
 
 type Phase = 'all' | 'base' | 'build' | 'peak' | 'taper';
@@ -201,16 +201,16 @@ export function PlanTable({ sessions, totalWeeks, baseSessionHref = '/session' }
       {/* Legend */}
       <div className="flex flex-wrap gap-3 text-xs text-slate-500 pt-2 border-t border-slate-100">
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-emerald-200 border border-emerald-300" /> Completed
+          <span className="inline-block w-3 h-3 rounded bg-emerald-100 border border-emerald-200" /> Completed
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-blue-200 border border-blue-400" /> Today
+          <span className="inline-block w-3 h-3 rounded bg-sky-200 border border-sky-400" /> Today
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-red-200 border border-red-300" /> Missed
+          <span className="inline-block w-3 h-3 rounded bg-red-100 border border-red-200" /> Missed
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-slate-100 border border-slate-200" /> Planned
+          <span className="inline-block w-3 h-3 rounded bg-stone-100 border border-stone-200" /> Planned
         </span>
         <span className="flex items-center gap-1 ml-2 text-slate-400">
           E=Easy · L=Long · T=Threshold · I=Interval · MP=Marathon Pace · TT=Time Trial

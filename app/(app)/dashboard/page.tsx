@@ -156,7 +156,7 @@ function WeekProgress({ data }: { data: DashboardData }) {
         </div>
         <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
           <div
-            className="h-full rounded-full bg-emerald-500 transition-all"
+            className="h-full rounded-full bg-chart-3 transition-all"
             style={{ width: `${done}%` }}
           />
         </div>
@@ -266,7 +266,7 @@ function Trends4w({ trends }: { trends: DashboardData['trends_4w'] }) {
           <p className="text-xs text-slate-500 mb-2">Weekly km</p>
           <div className="flex gap-1 items-end h-10">
             {trends.weekly_km.map((km, i) => (
-              <TrendBar key={i} value={km} max={kmMax} colorClass="bg-emerald-400" />
+              <TrendBar key={i} value={km} max={kmMax} colorClass="bg-chart-3" />
             ))}
           </div>
           <div className="flex gap-1 mt-1">
