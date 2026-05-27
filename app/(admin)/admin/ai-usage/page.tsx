@@ -85,24 +85,26 @@ export default function AiUsagePage() {
         {data.per_user.length === 0 ? (
           <p className="px-5 py-4 text-sm text-gray-500">No generations this month.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-              <tr>
-                <th className="px-4 py-3">User</th>
-                <th className="px-4 py-3">Generations</th>
-                <th className="px-4 py-3">Est. Cost</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data.per_user.map((u) => (
-                <tr key={u.user_id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800">{u.email}</td>
-                  <td className="px-4 py-3 text-gray-600">{u.generation_count}</td>
-                  <td className="px-4 py-3 text-gray-600">${u.total_cost.toFixed(4)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-90 text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="px-4 py-3">User</th>
+                  <th className="px-4 py-3">Generations</th>
+                  <th className="px-4 py-3">Est. Cost</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data.per_user.map((u) => (
+                  <tr key={u.user_id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-800 break-all">{u.email}</td>
+                    <td className="px-4 py-3 text-gray-600">{u.generation_count}</td>
+                    <td className="px-4 py-3 text-gray-600">${u.total_cost.toFixed(4)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -114,36 +116,38 @@ export default function AiUsagePage() {
         {data.recent.length === 0 ? (
           <p className="px-5 py-4 text-sm text-gray-500">None.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Purpose</th>
-                <th className="px-4 py-3">Model</th>
-                <th className="px-4 py-3">Cost</th>
-                <th className="px-4 py-3">Success</th>
-                <th className="px-4 py-3">When</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data.recent.map((g, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-700">{g.purpose}</td>
-                  <td className="px-4 py-3 text-gray-500">{g.model}</td>
-                  <td className="px-4 py-3 text-gray-600">${g.cost.toFixed(4)}</td>
-                  <td className="px-4 py-3">
-                    {g.success ? (
-                      <span className="text-green-600">✓</span>
-                    ) : (
-                      <span className="text-red-500">✗</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
-                    {new Date(g.created_at).toLocaleString()}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-120 text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="px-4 py-3">Purpose</th>
+                  <th className="px-4 py-3">Model</th>
+                  <th className="px-4 py-3">Cost</th>
+                  <th className="px-4 py-3">Success</th>
+                  <th className="px-4 py-3">When</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data.recent.map((g, i) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-700">{g.purpose}</td>
+                    <td className="px-4 py-3 text-gray-500">{g.model}</td>
+                    <td className="px-4 py-3 text-gray-600">${g.cost.toFixed(4)}</td>
+                    <td className="px-4 py-3">
+                      {g.success ? (
+                        <span className="text-green-600">✓</span>
+                      ) : (
+                        <span className="text-red-500">✗</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">
+                      {new Date(g.created_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

@@ -154,7 +154,7 @@ export default async function CoachSessionPage({
         {/* Planned */}
         <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-4">
           <h2 className="font-semibold text-slate-700 text-sm uppercase tracking-wide">Planned</h2>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
             {session.distance_km != null && (
               <>
                 <dt className="text-slate-500">Distance</dt>
@@ -194,7 +194,7 @@ export default async function CoachSessionPage({
         <section className="rounded-lg border border-slate-200 bg-white p-5 space-y-4">
           <h2 className="font-semibold text-slate-700 text-sm uppercase tracking-wide">Actual</h2>
           {linkedRun ? (
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
               <dt className="text-slate-500">Distance</dt>
               <dd className="font-medium text-slate-800">{linkedRun.distance_km} km</dd>
               <dt className="text-slate-500">Duration</dt>

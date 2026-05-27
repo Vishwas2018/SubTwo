@@ -88,7 +88,7 @@ function IntermediateFields({ data, onChange }: Props) {
         <legend className="px-1 text-sm font-medium text-slate-700">
           Most recent race
         </legend>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label htmlFor="recent_dist">Distance (km)</Label>
             <Input
@@ -131,7 +131,7 @@ function AdvancedFields({ data, onChange }: Props) {
     <>
       <IntermediateFields data={data} onChange={onChange} />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="peak_km">Peak weekly km</Label>
           <Input
