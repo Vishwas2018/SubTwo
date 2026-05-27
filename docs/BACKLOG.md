@@ -78,6 +78,7 @@
 | P4-04 | PDF export via `@react-pdf/renderer`                        | 🔵     |
 | P4-05 | Mobile responsiveness sweep                                 | 🔵     |
 | P4-06 | Dark mode toggle                                            | 🔵     |
+| P4-06b | Warm dark mode — Phase C: restyle `.dark {}` to match warm-ivory palette (muted clay primary, warm dark backgrounds, no flat-black surfaces) | 🔵 | Phase B light restyle done Day 28; Phase C is the `.dark {}` companion |
 | P4-07 | Runbooks (incident response, key rotation, restore)         | 🔵     |
 | P4-08 | Production deploy + first invite codes generated            | 🔵     |
 

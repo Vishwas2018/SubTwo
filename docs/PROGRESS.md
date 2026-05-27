@@ -979,6 +979,49 @@ Awaiting user walkthrough execution to close VISUAL-COACH + VISUAL-ADMIN.
 
 ---
 
+## Day 28 — Premium UI Phase B / Warm-Light Restyle
+
+**Theme:** Token + primitive style changes only. Zero test delta. CSS values and class strings only.
+
+**Commits:** 2caa707 · 4b62eec · da33123 · 56020e7 · 783b5eb
+
+**COMMIT 1 — chore(fonts): Manrope self-hosted**
+- Downloaded Manrope v20 variable woff2 (latin) → `public/fonts/Manrope-VariableFont_wght.woff2`
+- `@font-face` block added in `globals.css` (before `@theme inline`); `--font-sans` → Manrope stack
+- Removed `Geist` import from `layout.tsx`; kept `Geist_Mono`; added Manrope preload `<link>` in `<head>`
+- E2E run immediately after: **21 passed, 2 skipped (same pre-existing)** — no glyph-width regression
+
+**COMMIT 2 — chore(tokens): warm ivory :root**
+- Replaced achromatic neutrals with warm earthy OKLCH palette (light `:root` only, `.dark {}` untouched)
+- `--background`: oklch(0.990 0.008 80) · `--primary`: confirmed oklch(0.400 0.110 38) · `--chart-3`: sage oklch(0.580 0.080 155)
+- All border/muted/secondary/accent tokens shifted warm (~hue 60–80)
+
+**COMMIT 3 — chore(radius-shadow)**
+- `--radius`: 0.625rem → 0.9rem (softer ~20px corners)
+- Added `--shadow-card` (thin ring + 2px lift) and `--shadow-float` (heavier drop) to `:root` + `@theme inline`
+
+**COMMIT 4 — chore(primitives)**
+- `card.tsx`: `ring-1 ring-foreground/10` → `shadow-[--shadow-card]` (class only — no DOM/ARIA change)
+- `plan-table.tsx`: `PHASE_COLORS` earthy (amber-50/orange-100/red-100/teal-50); `CELL_COLORS` earthy (emerald-50 completed, sky today, red-50 missed, stone future/rest); legend swatches updated
+- `dashboard/page.tsx`: sessions progress bar + 4w km trend bars → `bg-chart-3` (sage)
+
+**COMMIT 5 — fix(contrast)**
+- `--chart-1`: oklch(0.700 → 0.580 0.165 80) — amber deepened to 3.1:1 on ivory background
+- rest cell: `text-stone-400` → `text-stone-500` — 3.7:1 on stone-50
+
+**Test delta:** ZERO — unit 751/751 · integration unchanged · E2E 21/21 (2 pre-existing skips) · typecheck ✅ · lint ✅
+
+**Hard constraints verified:**
+- No layout/prop/DOM/ARIA changes ✅
+- `.dark {}` untouched ✅
+- `font-src 'self'` — Manrope in `public/fonts/`, no CDN at runtime ✅
+- Lucide icon set unchanged ✅
+
+**Blockers:** none
+**Next:** Phase C — warm dark mode (`.dark {}` restyle matching warm-ivory palette)
+
+---
+
 ## Template
 
 ```
