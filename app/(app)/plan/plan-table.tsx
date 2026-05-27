@@ -21,7 +21,7 @@ const CELL_COLORS: Record<string, string> = {
   today: 'bg-sky-100 text-sky-800 border-sky-400 ring-2 ring-sky-400',
   missed: 'bg-red-50 text-red-600 border-red-200',
   future: 'bg-stone-50 text-stone-600 border-stone-200',
-  rest: 'bg-stone-50 text-stone-400 border-stone-100',
+  rest: 'bg-stone-50 text-stone-500 border-stone-100',
 };
 
 type Phase = 'all' | 'base' | 'build' | 'peak' | 'taper';
