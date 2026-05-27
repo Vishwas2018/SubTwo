@@ -18,7 +18,8 @@
     "db:types": "supabase gen types typescript --project-id jyxbichqqvaojryvvcce --schema public > types/database.types.ts",
     "audit:rls": "cross-env NODE_OPTIONS=--use-system-ca tsx scripts/audit-rls.ts",
     "test:e2e": "cross-env NODE_OPTIONS=--use-system-ca playwright test",
-    "test:e2e:ui": "cross-env NODE_OPTIONS=--use-system-ca playwright test --ui"
+    "test:e2e:ui": "cross-env NODE_OPTIONS=--use-system-ca playwright test --ui",
+    "test:e2e:generate": "cross-env NODE_OPTIONS=--use-system-ca playwright test --grep \"@generate\" --project chromium"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",

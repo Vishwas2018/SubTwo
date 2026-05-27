@@ -31,7 +31,9 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
 
       - name: Run E2E tests
-        run: pnpm test:e2e
+        # @generate tests are excluded: they hit the live Anthropic API (~$0.01/run,
+        # 3/24h quota). Run on-demand with `pnpm test:e2e:generate`.
+        run: pnpm test:e2e --grep-invert "@generate"
         env:
           PLAYWRIGHT_BASE_URL: https://subtwo.vercel.app
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

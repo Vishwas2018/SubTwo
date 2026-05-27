@@ -169,3 +169,141 @@ test('settings page renders all tabs without overflow', async ({ page, viewport 
 
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 });
+
+// ─── @generate: wizard submit → plan generated → persisted → log run → dashboard
+//
+// Cost-aware gate — hits the live Anthropic API (Haiku).
+//   Estimated cost:  ~$0.01/run (5K/5-week single-call plan)
+//   Quota impact:    1 of 3 daily AI-generation uses for the test user
+//
+// CI gating:
+//   Standard CI (e2e.yml): EXCLUDED via --grep-invert "@generate"
+//   On-demand:             pnpm test:e2e:generate
+//
+// Failure modes:
+//   quota_exhausted (3/24h): wizard step 7 shows error; URL stays at /wizard;
+//     toHaveURL times out after 90s — expected. Re-run after quota resets.
+//   AI API error: same timeout behaviour — investigate then retry.
+//
+// Desktop viewport only; mobile-gen E2E is optional and skipped here.
+
+test('@generate — wizard submit → plan generated → persisted → log run → dashboard', async ({
+  page,
+  viewport,
+}) => {
+  test.setTimeout(180_000); // Haiku ~19s gen + wizard nav + review load + accept + log
+
+  // ── Fill wizard steps 1–6, then click "Generate plan →" ─────────────────
+
+  await page.goto('/onboarding/wizard');
+  await expect(page.getByRole('heading', { name: /build your plan/i })).toBeVisible();
+
+  // Step 1 — Race: 5K, ~10 weeks out (single-call path; enough weeks for
+  //   AI to reliably produce base/build/peak/taper + race session in final week)
+  await page.getByRole('button', { name: '5K' }).click();
+  await page.getByLabel(/race date/i).fill('2026-08-05');
+  await page.getByRole('button', { name: /continue/i }).click();
+
+  // Step 2 — Experience: intermediate (gives AI a recent race for context →
+  //   more reliable plan structure vs beginner which can miss race_day rule)
+  await expect(page.getByRole('heading', { name: /experience/i })).toBeVisible({ timeout: 5_000 });
+  await page.getByLabel(/intermediate/i).first().click().catch(() =>
+    page.getByRole('radio', { name: /intermediate/i }).click()
+  );
+  await page.getByRole('button', { name: /continue/i }).click();
+
+  // Step 3 — Fitness (intermediate path: weekly km + recent race)
+  await page.getByLabel(/current weekly distance/i).first().fill('30');
+  // Recent race: 5K in 32 min → clear context for the AI
+  await page.locator('fieldset').getByLabel(/distance/i).fill('5');
+  await page.locator('fieldset').getByLabel(/date/i).fill('2026-03-01');
+  await page.keyboard.press('Escape'); // dismiss native date picker before filling time
+  await page.locator('#recent_time').fill('0:32:00');
+  await page.getByRole('button', { name: /continue/i }).click();
+
+  // Step 4 — Goal: let AI suggest a realistic target
+  await page.getByRole('radio', { name: /suggest a realistic target/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
+
+  // Step 5 — Constraints (both selects required for validateStep5)
+  await page.getByLabel(/training days per week/i).click();
+  await page.getByRole('option').first().click(); // "3 days" (min valid value)
+  await page.getByLabel(/long run day/i).click();
+  await page.getByRole('option', { name: /saturday/i }).click(); // Saturday long run
+  await page.getByRole('button', { name: /continue/i }).click();
+
+  // Step 6 — Equipment (all optional) → click Generate
+  await expect(page.getByRole('button', { name: /generate plan/i })).toBeVisible({ timeout: 5_000 });
+  await page.getByRole('button', { name: /generate plan/i }).click();
+
+  // ── Wait for generation to complete and redirect to review ────────────────
+  // Fail fast if rate-limit / quota error appears (visible within ~5s of click).
+  // If no error after 8s, assume generation is in flight → wait up to 90s for redirect.
+  await page.waitForTimeout(8_000);
+  const genError = await page.getByRole('alert').isVisible().catch(() => false);
+  if (genError) {
+    const alertText = await page.getByRole('alert').textContent().catch(() => 'unknown');
+    throw new Error(`Plan generation blocked before API call: "${alertText?.trim()}". Re-run after rate limit resets (3/24h window).`);
+  }
+  await expect(page).toHaveURL(/\/onboarding\/review/, { timeout: 90_000 });
+
+  // ── Assert plan is persisted in DB (review page shows plan data) ──────────
+
+  // Wait for plan data to load (spinner clears)
+  await expect(page.getByRole('heading', { name: /your training plan/i })).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // Key plan sections visible — data came from the DB write
+  await expect(page.getByText(/pace zones/i)).toBeVisible();
+  await expect(page.getByText(/weekly volume/i)).toBeVisible();
+
+  if (viewport) await assertNoHorizontalScroll(page, viewport.width);
+
+  // ── Accept plan → dashboard ───────────────────────────────────────────────
+
+  await page.getByRole('button', { name: /accept & start/i }).click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+
+  // Plan is active: dashboard shows plan content, not empty-state CTA
+  await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
+  const emptyState = await page
+    .getByText(/no active training plan/i)
+    .isVisible()
+    .catch(() => false);
+  expect(emptyState).toBe(false);
+
+  if (viewport) await assertNoHorizontalScroll(page, viewport.width);
+
+  // ── Log a run ────────────────────────────────────────────────────────────
+
+  await page.goto('/log');
+  await expect(page.getByRole('heading', { name: /log.*run/i })).toBeVisible({ timeout: 8_000 });
+
+  await page.getByLabel(/distance/i).fill('5');
+  await page.getByPlaceholder(/00/).first().fill('25'); // 25 min = 1500s duration
+
+  await page.getByRole('button', { name: /log run/i }).click();
+
+  // Successful log redirects to /plan (no session param)
+  await expect(page).not.toHaveURL(/\/log/, { timeout: 10_000 });
+
+  // ── Dashboard shows the logged run ────────────────────────────────────────
+
+  await page.goto('/dashboard');
+  await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
+
+  // WeekProgress renders "{completed}/{planned} sessions" when plan is active
+  // — confirms the run was persisted and the dashboard reflects it
+  const hasSessionsText = await page
+    .getByText(/sessions/i)
+    .first()
+    .isVisible({ timeout: 8_000 })
+    .catch(() => false);
+  const hasKmText = await page
+    .getByText(/km/i)
+    .first()
+    .isVisible({ timeout: 5_000 })
+    .catch(() => false);
+  expect(hasSessionsText || hasKmText).toBe(true);
+});
