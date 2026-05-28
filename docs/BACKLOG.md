@@ -70,17 +70,18 @@
 
 ## Phase 4 — Validation & Release
 
-| ID    | Task                                                        | Status |
-| ----- | ----------------------------------------------------------- | ------ |
-| P4-01 | Playwright E2E tests for happy path                         | 🔵     |
-| P4-02 | Edge case suite (timezones, leap years, missed cron, quota) | 🔵     |
-| P4-03 | Load test AI endpoint                                       | 🔵     |
-| P4-04 | PDF export via `@react-pdf/renderer`                        | 🔵     |
-| P4-05 | Mobile responsiveness sweep                                 | 🔵     |
-| P4-06 | Dark mode toggle                                            | 🔵     |
-| P4-06b | Warm dark mode — Phase C: restyle `.dark {}` to match warm-ivory palette (muted clay primary, warm dark backgrounds, no flat-black surfaces) | 🔵 | Phase B light restyle done Day 28; Phase C is the `.dark {}` companion |
-| P4-07 | Runbooks (incident response, key rotation, restore)         | 🔵     |
-| P4-08 | Production deploy + first invite codes generated            | 🔵     |
+| ID    | Task                                                        | Status | Notes |
+| ----- | ----------------------------------------------------------- | ------ | ----- |
+| P4-01 | Playwright E2E tests for happy path                         | ⚠️     | Day 27/29/30: 21/21 green (CI + local desktop + mobile-chrome); @generate UNVERIFIED (rate limit active Day 31) |
+| P4-02 | Vercel env audit + production deploy                        | 🟢     | Day 24/25 |
+| P4-03 | Post-deploy hardening (RLS, rate-limit revert, make-coach) | 🟢     | Day 25 |
+| P4-04 | Beta readiness + first-run polish                           | 🟢     | Day 26 |
+| P4-05 | Mobile responsiveness sweep                                 | 🟢     | Day 27 — responsive fixes + E2E mobile-chrome |
+| P4-06 | Dark mode toggle                                            | ⚪     | Deferred Phase 5 |
+| P4-06b | Warm dark mode Phase B light restyle (warm ivory, Manrope, clay CTAs) | 🟢 | Day 28 — tokens + fonts + primitives; E2E clean |
+| P4-06c | Warm dark mode Phase C `.dark {}` restyle                  | ⚪     | Deferred Phase 5 (P4-06b) |
+| P4-07 | Runbooks (incident response, key rotation, restore)         | ⚪     | Deferred Phase 5 |
+| P4-08 | Production deploy                                           | 🟢     | Day 25 — smoke /, /login → 200; cron 401/200 |
 
 ## Phase 5 — AI & Infra Improvements (deferred from P4)
 

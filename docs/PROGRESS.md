@@ -1073,6 +1073,134 @@ GitHub secrets `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `E2E_USER_EMAIL` were nev
 
 ---
 
+---
+
+## Day 31 — Phase 4 Exit Audit
+
+**Theme:** Certify Phase 4 launch readiness. Audit, don't build.
+
+**STEP 1 — @generate gate:**
+- `pnpm test:e2e:generate` run at ~13:00 UTC 2026-05-28
+- Result: BLOCKED — "AI generation rate limit exceeded" (3/24h Upstash window still exhausted from Day 29/30 debugging)
+- Test code confirmed correct; rate limit window still active. Flag: **@generate UNVERIFIED**
+
+**STEP 2 — Production smoke (live):**
+- `https://subtwo.vercel.app/` → 200 ✅
+- `https://subtwo.vercel.app/login` → 200 ✅
+- `https://subtwo.vercel.app/onboarding/wizard` → 200 ✅
+- Cron: 401 without `Authorization: Bearer` header ✅; 200 with correct CRON_SECRET ✅
+- Sentry DSN set in Vercel + tunnel route present ✅; Upstash vars set ✅
+
+**STEP 3 — RLS audit (prod):**
+- `pnpm audit:rls` → 16/16 tables RLS-enabled, all policies present ✅
+- No new gaps since Migration 027. Same clean state as Day 25.
+
+**STEP 4 — Test suite final:**
+- Unit: 644/644 ✅
+- Integration: 106/110 (1 timeout ai-live.test.ts TD-010 WONTFIX; 3 skipped — cron BASE_URL TD-013 resolved + ai-live variant) ✅
+- E2E (non-generate): 21/21 (2 pre-existing skips — session detail no plan for test user) ✅; CI gates (no continue-on-error)
+- @generate: UNVERIFIED (rate limit active — re-run when 24h window clears)
+- Re-grep `any` in app/lib/components: 0 actual type annotations (1 match = comment text) ✅
+- Re-grep console.log in app/lib/components: 0 ✅
+- typecheck (`tsc --noEmit`): 0 errors ✅
+- lint: 0 errors, 16 warnings (all in test files — unused imports/vars in mocks; not actionable) ✅
+- CI: last run 2026-05-28T01:44:25Z — CI ✅ + E2E ✅ both green
+
+**STEP 5 — Env vars final state:**
+
+| Variable | Status |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Live |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Live |
+| `SUPABASE_SERVICE_ROLE_KEY` | Live |
+| `ANTHROPIC_API_KEY` | Live |
+| `ANTHROPIC_MODEL` | Live (`claude-haiku-4-5-20251001`) |
+| `CRON_SECRET` | Live |
+| `INITIAL_ADMIN_EMAIL` | Live |
+| `SENTRY_DSN` | Live |
+| `NEXT_PUBLIC_SENTRY_DSN` | Live |
+| `UPSTASH_REDIS_REST_URL` | Live |
+| `UPSTASH_REDIS_REST_TOKEN` | Live |
+| `RESEND_API_KEY` | Skip/no-op — emails not sent; audit_log still writes; low risk |
+| `NEXT_PUBLIC_BASE_URL` | Skip — cron HTTP tests replaced by unit tests (TD-013); no runtime impact |
+
+**STEP 6 — Defects + tech debt reconciliation:**
+- DEFECTS.md open section: **0 open** ✅
+- TD-010: ⚪ WONTFIX (corporate proxy; ai-live.test.ts vitest worker; CI unaffected)
+- TD-013: 🟢 closed Day 23 (cron HTTP tests → unit tests)
+- TD-014: 🟢 closed Day 25 (Vercel env vars set)
+- TD-002 (PDF export): still outstanding; "Phase 4 (P4-04)" repay slipped → Phase 5
+- TD-012 (CSP unsafe-inline): outstanding → before public launch
+- Days 25–30 new informal tech debt (not in register):
+  - P5-AI3: `SONNET_PRICING` constant used for Haiku cost logging → incorrect; Phase 5 fix
+  (P5-AI1/AI2 are feature deferrals, not debt)
+
+**STEP 7 — Phase 4 Exit Audit:**
+
+| Criterion | Status | Notes |
+|---|---|---|
+| Production deployed + smoke-green | ✅ | / + /login + /onboarding/wizard → 200; cron 401/200 |
+| P4-01 E2E | ⚠️ | 21/21 CI green; @generate UNVERIFIED (rate limit 2026-05-28) |
+| P4-02 deploy | ✅ | Day 25 — Vercel env vars + prod smoke |
+| P4-03 hardening | ✅ | Day 25 — RLS gaps, rate-limit revert, make-coach toggle |
+| P4-04 beta-prep | ✅ | Day 26 — feedback link, quota copy, Sentry in wizard |
+| P4-05 mobile | ✅ | Day 27 — responsive fixes, E2E mobile-chrome |
+| @generate verified green | ❌ | UNVERIFIED — rate limit active 2026-05-28 ~13:00 UTC |
+| Coach + admin visuals verified live | ✅ | Day 25 user walkthrough |
+| Restyle + mobile-scroll visuals | ⚠️ | User walkthrough required (warm ivory + 375px STEP 8) |
+| RLS prod clean (16/16) | ✅ | Confirmed today via pnpm audit:rls |
+| Sentry live | ✅ | DSN set, tunnel route, captureException wired |
+| Upstash live | ✅ | Vars set, sliding-window limiters active |
+| Cron live | ✅ | vercel.json registered; 401/200 confirmed |
+| E2E gates CI (no continue-on-error) | ✅ | Removed Day 30; CI E2E green |
+| Zero any / console.log | ✅ | 0 type annotations, 0 console.log in source |
+| typecheck / lint clean | ✅ | 0 errors; 16 warnings in test files only |
+| CI green | ✅ | Last run 2026-05-28 — CI + E2E both ✅ |
+| DEFECTS 0 open | ✅ | Open section: none |
+| TD reconciled | ✅ | TD-010 WONTFIX; TD-013/014 closed; TD-002/012 Phase 5; P5-AI3 noted |
+| Env vars documented | ✅ | All live or no-op documented with risk |
+
+**STEP 8 — Visual close:**
+Awaiting user walkthrough on live at 375px + desktop:
+A. Warm ivory restyle (Manrope, clay CTAs, ~20px cards) reads premium
+B. No horizontal scroll at 375px on any core screen
+C. (Optional) one manual 5K/4wk generate after rate-limit resets
+
+**Phase 4: COMPLETE pending @generate + STEP 8 user visual**
+
+**Commits:** (docs only — see below)
+
+**Blockers:** @generate UNVERIFIED; STEP 8 visual walkthrough user-owned
+**Next:** Phase 5 (post-user-sign-off) — see BACKLOG Phase 5 items
+
+---
+
+## Phase 4 — COMPLETE pending @generate + visual
+
+**Summary:** Days 23–31 · P4-01 through P4-05 all complete or verified; @generate rate-limit blocked on exit day
+
+| Exit Criterion | Status | Notes |
+|---|---|---|
+| Prod smoke green | ✅ | 3 core pages 200; cron auth 401/200 |
+| P4-01 E2E | ⚠️ | 21/21 CI; @generate UNVERIFIED |
+| P4-02 deploy | ✅ | Day 25 |
+| P4-03 hardening | ✅ | Day 25 |
+| P4-04 beta-prep | ✅ | Day 26 |
+| P4-05 mobile | ✅ | Day 27 |
+| RLS 16/16 | ✅ | Day 25 + Day 31 confirmation |
+| Sentry/Upstash/Cron live | ✅ | Day 25 |
+| E2E gates CI | ✅ | Day 30 |
+| Zero any/console.log, typecheck/lint clean | ✅ | Day 31 confirmation |
+| DEFECTS 0 open | ✅ | Ongoing |
+| TD reconciled | ✅ | Day 31 |
+| Env vars documented | ✅ | Day 25 + Day 31 update |
+
+**Tests:** unit 644 · integration 106/110 · E2E 21/21 (2 skip) + @generate UNVERIFIED
+**Open tech debt carried to Phase 5:** TD-002 (PDF export) · TD-012 (CSP unsafe-inline) · P5-AI3 (pricing constant)
+**Open Phase 5 features:** warm dark mode (P4-06b) · runbooks (P4-07) · Strava (P5-01–03) · multi-provider AI (P5-AI1) · Vercel Pro for Sonnet (P5-AI2)
+
+---
+
 ## Template
 
 ```

@@ -15,7 +15,7 @@
 | ID     | Item                                                       | Severity | Reason                                                                   | Repay by                                            |
 | ------ | ---------------------------------------------------------- | -------- | ------------------------------------------------------------------------ | --------------------------------------------------- |
 | TD-001 | Garmin integration deferred                                | Medium   | API approval lead time (1–4 wks)                                         | Phase 6                                             |
-| TD-002 | PDF export deferred                                        | Low      | Not blocking MVP                                                         | Phase 4 (P4-04)                                     |
+| TD-002 | PDF export deferred                                        | Low      | Not blocking MVP                                                         | Phase 5                                             |
 | TD-003 | Adjustment notifications in-app only (no email)            | Low      | Email infra simpler later                                                | Phase 3+                                            |
 | TD-004 | No Apple Health support                                    | Low      | Web API not available; Strava covers via sync                            | Permanent                                           |
 | TD-005 | Single coach per athlete                                   | Low      | Simpler v1 model                                                         | v2                                                  |
@@ -24,6 +24,7 @@
 | TD-008 | OAuth tokens stored as plain TEXT, not encrypted           | Medium   | Supabase Vault requires Phase 3 setup; no integrations active in Phase 1 | Phase 3 (before P5-01 Strava OAuth)                 |
 | TD-010 | ai-live.test.ts hangs in vitest worker (corporate proxy; `--use-system-ca` not inherited by worker subprocess); live gate via `scripts/live-test.ts` | Low | CA not in Node bundle; CI unaffected (API key absent → skip); env-only limitation | ⚪ WONTFIX — corporate proxy; gate proven via scripts/live-test.ts |
 | TD-012 | CSP uses 'unsafe-inline' (weakens XSS protection) | Medium | Nonce infra requires proxy/middleware refactor, forces dynamic rendering | Before public launch |
+| TD-015 | `SONNET_PRICING` constant used for cost logging regardless of model; incorrect for Haiku | Low | ANTHROPIC_MODEL changed to Haiku Day 25 but pricing const not updated; low $ impact now | Phase 5 — fix when model changes or cost reporting matters |
 ---
 
 ## Paid
