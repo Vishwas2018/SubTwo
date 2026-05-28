@@ -75,6 +75,7 @@ export type AnthropicClientOptions = {
   apiKey?: string;
   model?: string;
   maxRetries?: number;
+  timeout?: number;
   fetchImpl?: typeof fetch;
   client?: ClientLike;
 };
@@ -88,12 +89,13 @@ export async function generatePlan(
   const start = Date.now();
   const model = opts.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
   const maxRetries = opts.maxRetries ?? 2;
+  const sdkTimeout = opts.timeout ?? 50_000;
   const client: ClientLike =
     opts.client ??
     new Anthropic({
       apiKey: opts.apiKey ?? process.env.ANTHROPIC_API_KEY,
       maxRetries: 0,   // our retry loop handles retries; SDK retries would multiply latency
-      timeout: 50_000, // 50s — leaves 10s buffer before Vercel's 60s maxDuration ceiling
+      timeout: sdkTimeout,
       ...(opts.fetchImpl ? { fetch: opts.fetchImpl } : {}),
     });
 

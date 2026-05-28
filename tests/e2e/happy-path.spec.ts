@@ -237,7 +237,10 @@ test('@generate — wizard submit → plan generated → persisted → log run �
   await page.getByRole('button', { name: /generate plan/i }).click();
 
   // ── Wait for generation to complete and redirect to review ────────────────
-  // Fail fast if a non-empty error alert appears within 8s (rate-limit / quota).
+  // Check 1 (8s): catch rate-limit / quota errors that appear immediately.
+  // Check 2 (on assertion failure): raise the wait — if toHaveURL times out,
+  //   inspect the page for a structured error (Vercel 60s cold-start timeout
+  //   now returns 502 so the wizard shows an alert rather than "Network error").
   // The wizard always has a base <Alert> in the DOM; filter for one with text.
   await page.waitForTimeout(8_000);
   const errorAlert = page.getByRole('alert').filter({ hasText: /.+/ });
@@ -246,7 +249,22 @@ test('@generate — wizard submit → plan generated → persisted → log run �
     const alertText = await errorAlert.first().textContent().catch(() => 'unknown');
     throw new Error(`Plan generation blocked: "${alertText?.trim()}". Re-run after rate limit resets (3/24h window).`);
   }
-  await expect(page).toHaveURL(/\/onboarding\/review/, { timeout: 90_000 });
+  // Raise the wait: toHaveURL has 90s to complete. On failure, re-check for a
+  // structured error alert that appeared after the cold-start timeout (>8s).
+  try {
+    await expect(page).toHaveURL(/\/onboarding\/review/, { timeout: 90_000 });
+  } catch {
+    const lateAlert = page.getByRole('alert').filter({ hasText: /.+/ });
+    const hasError = await lateAlert.isVisible({ timeout: 0 }).catch(() => false);
+    const alertText = hasError
+      ? await lateAlert.first().textContent().catch(() => 'unknown')
+      : null;
+    throw new Error(
+      alertText
+        ? `Generation failed: "${alertText.trim()}". Vercel Hobby 60s limit likely (P5-AI2).`
+        : 'Generation timed out: URL stayed on /wizard for 90s. Check Vercel function logs.',
+    );
+  }
 
   // ── Assert plan is persisted in DB (review page shows plan data) ──────────
 

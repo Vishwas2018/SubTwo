@@ -9,6 +9,8 @@ import { rateLimit } from '@/lib/rate-limit';
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  const functionStart = Date.now();
+
   // 1. Auth
   const supabase = await createClient();
   const {
@@ -119,9 +121,12 @@ export async function POST(req: Request) {
     // fail-open: budget check is best-effort; don't block generation on DB error
   }
 
-  // 5. Generate plan
+  // 5. Generate plan — compute remaining time budget so the SDK aborts cleanly
+  //    before Vercel's 60s kill, giving the browser a structured HTTP error.
   const start = Date.now();
-  const result = await generatePlan(wizardInput);
+  const elapsed = start - functionStart;
+  const sdkTimeout = Math.max(10_000, 55_000 - elapsed); // ≥10s; leaves 5s for response write
+  const result = await generatePlan(wizardInput, { timeout: sdkTimeout });
   const durationMs = Date.now() - start;
 
   const serviceClient = createServiceClient();
