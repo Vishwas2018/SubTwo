@@ -1242,6 +1242,86 @@ B. No horizontal scroll at 375px
 
 ---
 
+## Day 33 — Generation Latency Budget Investigation (P4-01)
+
+**Tasks completed:**
+- P4-01 Per-stage timing instrumentation on POST /api/plans/generate (Sentry breadcrumbs + structured `console.log`)
+
+**Tasks incomplete:**
+- P4-01 Cold-start measurement on prod — BLOCKED: daily rate limit exhausted, resets ~2026-05-29 13:15 UTC
+
+**Defects logged:** none
+**Deviations logged:** none
+**Tech debt added:** none
+**ADRs:** none
+
+### Instrumentation added (`app/api/plans/generate/route.ts`)
+
+Timing checkpoints `t0`–`t8` at every stage:
+
+| Stage | Variable | What it measures |
+|---|---|---|
+| auth | `t1 - t0` | `createClient()` + `auth.getUser()` — first Supabase round-trip |
+| rate_limit | `t2 - t1` | Upstash Redis `ai_generation` limiter |
+| validate | `t3 - t2` | `req.json()` + Zod parse |
+| quota_check | `t4 - t3` | `supabase.rpc('check_ai_quota')` |
+| budget_check | `t5 - t4` | `checkBudget()` → `check_global_ai_budget` RPC |
+| **pre_ai_ms** | **`t5 - t0`** | **All pre-AI overhead (sum of above + cold start)** |
+| sdk_ms | `t6 - t5` | `generatePlan()` — full Anthropic SDK call |
+| db_log | `t7 - t6` | `ai_generations` insert |
+| persist | `t8 - t7` | `persistGeneratedPlan()` RPC |
+| **total_ms** | **`t8 - t0`** | **End-to-end function time** |
+
+Each stage also emits a `Sentry.addBreadcrumb()` (category: `generate`). The final `console.log(JSON.stringify({ event: 'generate.timing', ... }))` at the 201 path is visible in Vercel Function logs.
+
+### Code analysis: cold-start budget (5K/4wk, single-call path)
+
+**Estimated cold breakdown** (no real measurement yet):
+
+| Stage | Warm | Cold |
+|---|---|---|
+| Next.js cold start (module load: Sentry, Supabase, Upstash, Anthropic, Zod) | n/a | ~2–4 s |
+| auth (TCP+TLS to Supabase Auth) | ~150 ms | ~800–1500 ms |
+| rate_limit (TCP+TLS to Upstash) | ~50 ms | ~200–400 ms |
+| validate (local Zod) | <5 ms | <5 ms |
+| quota_check (Supabase RPC, reuses conn) | ~150 ms | ~300–800 ms |
+| budget_check (Supabase RPC, reuses conn) | ~100 ms | ~200–400 ms |
+| **pre_ai_ms total** | **~0.5 s** | **~3.5–7 s** |
+| sdk_ms (Sonnet 4.6, 4wk plan ~2–3k out-tokens) | ~8–15 s | ~10–20 s |
+| db_log + persist | ~0.4 s | ~0.8 s |
+| **total** | **~9–16 s** | **~14–28 s** |
+
+Fits comfortably under 60 s for a 5K/4wk plan. Tighter for 10K/12wk (SDK up to ~25–35 s → total ~35–50 s).
+
+**Previously reported "~10 s pre-AI overhead"** most likely = cold start (~3 s) + three sequential Supabase/Upstash TCP round-trips (~5–7 s).
+
+### Trimmable items (ranked by impact, no code yet)
+
+1. **Parallelize quota + rate-limit** — after `auth.getUser()`, `rateLimit()` and `check_ai_quota` have no dependency on each other; `Promise.all` saves one full round-trip (~300–800 ms).
+2. **Lazy-import Sentry breadcrumbs** — avoid `import * as Sentry` at module load (adds to cold-start parse time); gate behind `if (process.env.SENTRY_DSN)` or dynamic import. Saves ~0.3–1 s cold start.
+3. **Smaller `max_tokens` cap** — `MAX_OUTPUT_TOKENS = 8192` is the ceiling, not the floor; the model stops at EOS. Reducing it does NOT speed up generation — no gain.
+4. **Edge runtime** — NOT viable: `@supabase/ssr` requires Node.js crypto; can't run on Vercel Edge.
+5. **Connection pooling / keep-alive** — Vercel's Lambda architecture reuses the process on warm invocations; no action needed beyond what Supabase SDK already does.
+
+### Verdict (pre-measurement)
+
+- 5K/4wk cold: **~14–28 s → FITS under 60 s** with substantial margin
+- 10K/12wk cold: **~35–50 s → MARGINAL**, depends on SDK time
+- HM/Marathon (batch path, 2+ SDK calls): **~60–120 s → DOES NOT FIT** on Hobby 60 s ceiling
+- Definitive answer requires the actual cold log — **pending rate-limit reset**
+
+**P5-AI2 (Vercel Pro) is required for plans > 12 weeks.** For ≤12-week plans it may be avoidable with trim #1 (parallelize quota+rate-limit).
+
+**Cold measurement plan:** after 2026-05-29 13:15 UTC, redeploy to ensure cold, trigger one 5K/4wk generation, read `generate.timing` JSON from Vercel logs. Report here.
+
+**Test status:** unit 571+ passing (pre-existing Windows vitest-pool worker timeouts on 2 files; unrelated to changes) · lint 0 errors · typecheck clean
+**Time spent:** ~1 h
+
+**Blockers:** @generate daily rate limit exhausted (resets ~2026-05-29 13:15 UTC)
+**Next:** Day 34 — cold-start measurement (post rate-limit reset), then trim decision
+
+---
+
 ## Template
 
 ```
