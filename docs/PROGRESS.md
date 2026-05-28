@@ -1175,6 +1175,47 @@ C. (Optional) one manual 5K/4wk generate after rate-limit resets
 
 ---
 
+## Day 32 — Phase 4 Final Close Attempt
+
+**Theme:** Close @generate + visual. No new features.
+
+**STEP 1 — @generate attempts:**
+
+Run 1 (rate limit cleared): `pnpm test:e2e:generate` → **Vercel 60s cold-start kill**
+- Wizard reached step 7 (generating), then received "Network error. Check your connection."
+- Root cause: cold start + auth/quota overhead (~10s) consumed the budget, racing the Anthropic
+  SDK's 50s timeout against Vercel's 60s function kill. TCP connection dropped → browser `catch`
+  block → no HTTP response → "Network error." instead of a structured 502.
+- This run consumed 1 quota slot (Upstash counts the rate-limit check even on timeout).
+
+Run 2 (immediate retry): **rate limited** (3/24h exhausted again by run 1 + prior debugging).
+
+**Structural fix applied (commit 3cbca07):**
+- `lib/ai/anthropic-client.ts`: added `timeout` to `AnthropicClientOptions`
+- `app/api/plans/generate/route.ts`: tracks `functionStart`, computes `sdkTimeout = max(10s, 55s - elapsed)` before calling `generatePlan` — ensures SDK aborts and browser receives HTTP 502 rather than a dropped connection.
+- `tests/e2e/happy-path.spec.ts`: raised the wait — `toHaveURL` failure now inspects page for structured error alert and emits a clear P5-AI2 upgrade hint.
+
+**Rate limit status:** exhausted (next window: ~2026-05-29 13:15 UTC)
+**@generate: UNVERIFIED — Vercel Hobby cold-start ceiling; structural fix applied; re-run pending**
+
+**STEP 2 — Suite (post-fix):**
+- Unit: 644/644 ✅
+- E2E (non-generate): 21/21 (2 pre-existing skips) ✅
+- Typecheck: clean ✅
+- CI: 26564446811 ✅ green
+
+**STEP 3 — Visual (STEP 4 of Day 32 prompt):**
+Awaiting user walkthrough on live at 375px + desktop:
+A. Warm ivory restyle, Manrope, clay CTAs, ~20px cards
+B. No horizontal scroll at 375px
+
+**Commits:** 3cbca07 (structural fix) · (docs below)
+
+**Blockers:** @generate rate limit; STEP 4 visual user-owned
+**Next:** Re-run `pnpm test:e2e:generate` after 2026-05-29 13:15 UTC
+
+---
+
 ## Phase 4 — COMPLETE pending @generate + visual
 
 **Summary:** Days 23–31 · P4-01 through P4-05 all complete or verified; @generate rate-limit blocked on exit day
