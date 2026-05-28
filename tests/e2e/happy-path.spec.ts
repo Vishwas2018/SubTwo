@@ -237,13 +237,14 @@ test('@generate — wizard submit → plan generated → persisted → log run �
   await page.getByRole('button', { name: /generate plan/i }).click();
 
   // ── Wait for generation to complete and redirect to review ────────────────
-  // Fail fast if rate-limit / quota error appears (visible within ~5s of click).
-  // If no error after 8s, assume generation is in flight → wait up to 90s for redirect.
+  // Fail fast if a non-empty error alert appears within 8s (rate-limit / quota).
+  // The wizard always has a base <Alert> in the DOM; filter for one with text.
   await page.waitForTimeout(8_000);
-  const genError = await page.getByRole('alert').isVisible().catch(() => false);
+  const errorAlert = page.getByRole('alert').filter({ hasText: /.+/ });
+  const genError = await errorAlert.isVisible({ timeout: 0 }).catch(() => false);
   if (genError) {
-    const alertText = await page.getByRole('alert').textContent().catch(() => 'unknown');
-    throw new Error(`Plan generation blocked before API call: "${alertText?.trim()}". Re-run after rate limit resets (3/24h window).`);
+    const alertText = await errorAlert.first().textContent().catch(() => 'unknown');
+    throw new Error(`Plan generation blocked: "${alertText?.trim()}". Re-run after rate limit resets (3/24h window).`);
   }
   await expect(page).toHaveURL(/\/onboarding\/review/, { timeout: 90_000 });
 

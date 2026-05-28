@@ -8,9 +8,6 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    # E2E runs against production after deployment — allowed to fail without
-    # blocking the main verify job. Fix failures before merging critical paths.
-    continue-on-error: true
     timeout-minutes: 15
 
     steps:
