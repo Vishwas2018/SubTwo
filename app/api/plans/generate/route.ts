@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { WizardInputSchema } from '@/lib/schemas';
 import { generatePlan, estimateCost } from '@/lib/ai/anthropic-client';
@@ -9,13 +10,15 @@ import { rateLimit } from '@/lib/rate-limit';
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const functionStart = Date.now();
+  const t0 = Date.now(); // function entry
 
   // 1. Auth
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const t1 = Date.now();
+  Sentry.addBreadcrumb({ category: 'generate', message: 'auth', data: { ms: t1 - t0 }, level: 'info' });
 
   if (!user) {
     return NextResponse.json(
@@ -26,6 +29,9 @@ export async function POST(req: Request) {
 
   // 2. Distributed AI rate limit (complements DB quota)
   const aiLimit = await rateLimit(`ai:${user.id}`, 'ai_generation');
+  const t2 = Date.now();
+  Sentry.addBreadcrumb({ category: 'generate', message: 'rate_limit', data: { ms: t2 - t1 }, level: 'info' });
+
   if (!aiLimit.allowed) {
     return NextResponse.json(
       {
@@ -51,6 +57,9 @@ export async function POST(req: Request) {
   }
 
   const parsed = WizardInputSchema.safeParse(body);
+  const t3 = Date.now();
+  Sentry.addBreadcrumb({ category: 'generate', message: 'validate', data: { ms: t3 - t2 }, level: 'info' });
+
   if (!parsed.success) {
     return NextResponse.json(
       {
@@ -65,10 +74,12 @@ export async function POST(req: Request) {
   }
   const wizardInput = parsed.data;
 
-  // 3. Quota check (uses authenticated client — RLS aware)
+  // 4. Quota check (uses authenticated client — RLS aware)
   const { data: quota, error: quotaErr } = await supabase.rpc('check_ai_quota', {
     p_user_id: user.id,
   });
+  const t4 = Date.now();
+  Sentry.addBreadcrumb({ category: 'generate', message: 'quota_check', data: { ms: t4 - t3 }, level: 'info' });
 
   if (quotaErr) {
     return NextResponse.json(
@@ -104,7 +115,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 4. Global AI budget check (monthly soft=$50 / hard=$100)
+  // 5. Global AI budget check (monthly soft=$50 / hard=$100)
   try {
     const budget = await checkBudget();
     if (budget.hard_exceeded) {
@@ -120,18 +131,31 @@ export async function POST(req: Request) {
   } catch {
     // fail-open: budget check is best-effort; don't block generation on DB error
   }
+  const t5 = Date.now(); // pre-AI prep complete; SDK call about to start
+  Sentry.addBreadcrumb({
+    category: 'generate',
+    message: 'budget_check',
+    data: { ms: t5 - t4, pre_ai_ms: t5 - t0 },
+    level: 'info',
+  });
 
-  // 5. Generate plan — compute remaining time budget so the SDK aborts cleanly
+  // 6. Generate plan — compute remaining time budget so the SDK aborts cleanly
   //    before Vercel's 60s kill, giving the browser a structured HTTP error.
-  const start = Date.now();
-  const elapsed = start - functionStart;
+  const elapsed = t5 - t0;
   const sdkTimeout = Math.max(10_000, 55_000 - elapsed); // ≥10s; leaves 5s for response write
   const result = await generatePlan(wizardInput, { timeout: sdkTimeout });
-  const durationMs = Date.now() - start;
+  const t6 = Date.now();
+  const durationMs = t6 - t5; // SDK-only duration stored in DB
+  Sentry.addBreadcrumb({
+    category: 'generate',
+    message: 'sdk_call',
+    data: { ms: durationMs, strategy: result.metadata.strategy },
+    level: 'info',
+  });
 
   const serviceClient = createServiceClient();
 
-  // 6. Log ai_generations row (service role bypasses RLS)
+  // 7. Log ai_generations row (service role bypasses RLS)
   const costUsd =
     result.success
       ? estimateCost(result.usage.input_tokens, result.usage.output_tokens)
@@ -152,6 +176,8 @@ export async function POST(req: Request) {
     })
     .select('id')
     .single();
+  const t7 = Date.now();
+  Sentry.addBreadcrumb({ category: 'generate', message: 'db_log', data: { ms: t7 - t6 }, level: 'info' });
 
   if (genErr || !genRow) {
     return NextResponse.json(
@@ -160,7 +186,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 7. If generation failed → 502 (not counted toward quota — only success=true rows count)
+  // 8. If generation failed → 502 (not counted toward quota — only success=true rows count)
   if (!result.success) {
     return NextResponse.json(
       {
@@ -173,7 +199,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 8. Persist plan atomically
+  // 9. Persist plan atomically
   let persisted: { planId: string; versionId: string; sessionCount: number };
   try {
     persisted = await persistGeneratedPlan({
@@ -193,8 +219,34 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
+  const t8 = Date.now();
+  const totalMs = t8 - t0;
+  Sentry.addBreadcrumb({
+    category: 'generate',
+    message: 'persist',
+    data: { ms: t8 - t7, total_ms: totalMs },
+    level: 'info',
+  });
 
-  // 9. Return 201
+  // Structured timing log — visible in Vercel Function logs for cold-start budget analysis.
+  // Stages: auth → rate_limit → validate → quota → budget = pre_ai → sdk → db_log → persist → total
+  console.log(
+    JSON.stringify({
+      event: 'generate.timing',
+      auth_ms: t1 - t0,
+      rate_limit_ms: t2 - t1,
+      validate_ms: t3 - t2,
+      quota_ms: t4 - t3,
+      budget_ms: t5 - t4,
+      pre_ai_ms: t5 - t0,
+      sdk_ms: durationMs,
+      db_log_ms: t7 - t6,
+      persist_ms: t8 - t7,
+      total_ms: totalMs,
+    }),
+  );
+
+  // 10. Return 201
   // NOTE: ai_generation_count column is deprecated; check_ai_quota derives the
   // authoritative count via COUNT(*) from ai_generations. No increment needed.
   return NextResponse.json(
