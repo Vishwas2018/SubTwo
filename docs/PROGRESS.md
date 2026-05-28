@@ -1046,6 +1046,33 @@ Awaiting user walkthrough execution to close VISUAL-COACH + VISUAL-ADMIN.
 
 ---
 
+## Day 30 — Make E2E a Real CI Gate
+
+**Theme:** CI/E2E reliability + verification only. No new features. No app DOM/behavior changes.
+
+**Commits:** 7f98fbe
+
+**Root cause of auth flake:**
+GitHub secrets `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `E2E_USER_EMAIL` were never set → auth.setup skips (`!SUPABASE_URL`) → no `playwright/.auth/user.json` written → all chromium/mobile-chrome tests fail ENOENT on both attempt and retry → masked entirely by `continue-on-error: true`. E2E has never gated CI.
+
+**Tasks completed:**
+- P4-01 Auth flake diagnosed: raw CI log showed `SUPABASE_URL: ` (empty) — missing secrets
+- Secrets set via `gh secret set` (SUPABASE_URL, SUPABASE_SERVICE_KEY, E2E_USER_EMAIL)
+- `continue-on-error: true` removed from `e2e.yml` — E2E now gates CI
+- `playwright.config.ts`: html reporter added in CI for artifact upload
+- `@generate` fast-fail: tightened alert filter to `hasText: /.+/` to avoid false-positive on wizard's base empty `<Alert>` element
+- E2E CI verified green: 21 passed / 2 skipped (session detail, no active plan for test user)
+
+**Tasks incomplete:**
+- P4-01 `@generate` green verification — Upstash rate limit still exhausted (~12:51 UTC reset). PAUSED, not weakened.
+
+**Test status:** unit 644/644 ✅ · integration 106/110 (2 pre-existing flaky: ai-live API timeout + budget precision — not in CI scope) · E2E 21/21 locally ✅ · CI E2E 21/21 ✅ · CI verify ✅ · typecheck ✅
+
+**Blockers:** none — @generate gate pending rate limit reset (~12:51 UTC)
+**Next:** Day 31 — Phase 4 exit audit on verified base. Run @generate when rate limit resets.
+
+---
+
 ## Template
 
 ```
