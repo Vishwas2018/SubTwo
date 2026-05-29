@@ -198,10 +198,14 @@ test('@generate — wizard submit → plan generated → persisted → log run �
   await page.goto('/onboarding/wizard');
   await expect(page.getByRole('heading', { name: /build your plan/i })).toBeVisible();
 
-  // Step 1 — Race: 5K, ~10 weeks out (single-call path; enough weeks for
-  //   AI to reliably produce base/build/peak/taper + race session in final week)
+  // Step 1 — Race: 5K, 6 weeks out (single-call path; ≥5 weeks needed for
+  //   base/build/peak/taper structure; dynamic date keeps generation under 60s
+  //   — cold 4wk = 19s measured; 6wk ≈ 25–30s, well within Vercel's ceiling)
+  const raceDate = new Date();
+  raceDate.setDate(raceDate.getDate() + 6 * 7); // 6 weeks from test-run date
+  const raceDateStr = raceDate.toISOString().split('T')[0]!;
   await page.getByRole('button', { name: '5K' }).click();
-  await page.getByLabel(/race date/i).fill('2026-08-05');
+  await page.getByLabel(/race date/i).fill(raceDateStr);
   await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 2 — Experience: intermediate (gives AI a recent race for context →
@@ -281,7 +285,7 @@ test('@generate — wizard submit → plan generated → persisted → log run �
 
   // ── Accept plan → dashboard ───────────────────────────────────────────────
 
-  await page.getByRole('button', { name: /accept & start/i }).click();
+  await page.getByRole('button', { name: /accept.*start/i }).click();
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
 
   // Plan is active: dashboard shows plan content, not empty-state CTA
