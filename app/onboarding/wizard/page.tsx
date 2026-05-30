@@ -14,8 +14,35 @@ import { Step6Equipment, validateStep6 } from '@/components/wizard/steps/step6-e
 import { Step7Generating } from '@/components/wizard/steps/step7-generating';
 import { type WizardFormData, INITIAL_FORM_DATA } from '@/components/wizard/wizard-types';
 import { assembleWizardInput } from '@/components/wizard/assemble-wizard-input';
+import type { Provider } from '@/lib/ai/providers';
 
 const TOTAL_STEPS = 7;
+
+const PROVIDER_OPTIONS: {
+  value: Provider;
+  label: string;
+  description: string;
+  free: boolean;
+}[] = [
+  {
+    value: 'claude',
+    label: 'SubTwo default (recommended)',
+    description: 'Claude — best quality',
+    free: false,
+  },
+  {
+    value: 'groq',
+    label: 'Groq — free, fast',
+    description: '',
+    free: true,
+  },
+  {
+    value: 'qwen',
+    label: 'Qwen — free',
+    description: '',
+    free: true,
+  },
+];
 
 function isStepValid(step: number, data: WizardFormData): boolean {
   switch (step) {
@@ -35,6 +62,7 @@ export default function WizardPage() {
   const [formData, setFormData] = useState<WizardFormData>(INITIAL_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [provider, setProvider] = useState<Provider>('claude');
 
   const handleChange = useCallback((patch: Partial<WizardFormData>) => {
     setFormData((prev) => ({ ...prev, ...patch }));
@@ -69,7 +97,7 @@ export default function WizardPage() {
       const res = await fetch('/api/plans/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assembled.data),
+        body: JSON.stringify({ provider, ...assembled.data }),
       });
 
       const json = (await res.json()) as {
@@ -105,6 +133,7 @@ export default function WizardPage() {
   }
 
   const canContinue = step < 7 && isStepValid(step, formData);
+  const selectedOption = PROVIDER_OPTIONS.find((o) => o.value === provider)!;
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-start justify-center pt-8 pb-16 px-4">
@@ -150,6 +179,35 @@ export default function WizardPage() {
           </CardContent>
         </Card>
 
+        {/* Provider selector — shown above Generate button on step 6 */}
+        {step === 6 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label htmlFor="provider-select" className="text-sm font-medium text-slate-700">
+                AI provider
+              </label>
+            </div>
+            <select
+              id="provider-select"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as Provider)}
+              aria-label="Select AI provider"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              {PROVIDER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {selectedOption.free && (
+              <p className="text-xs text-amber-600">
+                Free tier — variable quality, may take longer.
+              </p>
+            )}
+          </div>
+        )}
+
         {step < 7 && (
           <div className="flex items-center justify-between">
             <Button
@@ -164,7 +222,7 @@ export default function WizardPage() {
             <Button
               onClick={handleContinue}
               disabled={!canContinue || isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[120px]"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-30"
               aria-label={step === 6 ? 'Generate plan' : 'Continue to next step'}
             >
               {step === 6 ? 'Generate plan →' : 'Continue →'}

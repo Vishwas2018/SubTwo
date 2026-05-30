@@ -2,15 +2,21 @@ import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { WizardInputSchema } from '@/lib/schemas';
-import { generatePlan, estimateCost } from '@/lib/ai/anthropic-client';
+import { estimateCost } from '@/lib/ai/anthropic-client';
 import { checkBudget, maybySendBudgetAlert } from '@/lib/ai/budget';
 import { persistGeneratedPlan } from '@/lib/plans/persist';
 import { rateLimit } from '@/lib/rate-limit';
+import {
+  isValidProvider,
+  isFreeProvider,
+  getProvider,
+  type Provider,
+} from '@/lib/ai/providers';
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const t0 = Date.now(); // function entry
+  const t0 = Date.now();
 
   // 1. Auth
   const supabase = await createClient();
@@ -27,28 +33,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2. Distributed AI rate limit (complements DB quota)
-  const aiLimit = await rateLimit(`ai:${user.id}`, 'ai_generation');
-  const t2 = Date.now();
-  Sentry.addBreadcrumb({ category: 'generate', message: 'rate_limit', data: { ms: t2 - t1 }, level: 'info' });
-
-  if (!aiLimit.allowed) {
-    return NextResponse.json(
-      {
-        error: {
-          code: 'rate_limited',
-          message: 'AI generation rate limit exceeded. Try again later.',
-          retry_after: Math.ceil((aiLimit.reset - Date.now()) / 1000),
-        },
-      },
-      { status: 429 },
-    );
-  }
-
-  // 3. Parse + validate body
-  let body: unknown;
+  // 2. Parse body — extract provider before wizard schema validation
+  let rawBody: Record<string, unknown>;
   try {
-    body = await req.json();
+    rawBody = (await req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json(
       { error: { code: 'validation_error', message: 'Invalid JSON body.' } },
@@ -56,9 +44,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const parsed = WizardInputSchema.safeParse(body);
+  const { provider: providerRaw, ...wizardBodyRaw } = rawBody;
+  const requestedProvider: Provider = isValidProvider(providerRaw) ? providerRaw : 'claude';
+
+  // 3. Validate wizard input (provider field already stripped)
+  const parsed = WizardInputSchema.safeParse(wizardBodyRaw);
   const t3 = Date.now();
-  Sentry.addBreadcrumb({ category: 'generate', message: 'validate', data: { ms: t3 - t2 }, level: 'info' });
+  Sentry.addBreadcrumb({ category: 'generate', message: 'validate', data: { ms: t3 - t1 }, level: 'info' });
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -74,12 +66,35 @@ export async function POST(req: Request) {
   }
   const wizardInput = parsed.data;
 
-  // 4. Quota check (uses authenticated client — RLS aware)
+  // 4. Per-provider distributed rate limit
+  const limiterName = isFreeProvider(requestedProvider) ? 'free_ai_generation' : 'ai_generation';
+  const rateLimitKey = isFreeProvider(requestedProvider)
+    ? `free_ai:${user.id}`
+    : `ai:${user.id}`;
+  const aiLimit = await rateLimit(rateLimitKey, limiterName);
+  const t4 = Date.now();
+  Sentry.addBreadcrumb({ category: 'generate', message: 'rate_limit', data: { ms: t4 - t3, provider: requestedProvider }, level: 'info' });
+
+  if (!aiLimit.allowed) {
+    const providerLabel = requestedProvider === 'claude' ? 'Claude' : requestedProvider === 'groq' ? 'Groq' : 'Qwen';
+    return NextResponse.json(
+      {
+        error: {
+          code: 'rate_limited',
+          message: `${providerLabel} rate limit exceeded. Try again later.`,
+          retry_after: Math.ceil((aiLimit.reset - Date.now()) / 1000),
+        },
+      },
+      { status: 429 },
+    );
+  }
+
+  // 5. Quota check (DB-level, applies to all providers)
   const { data: quota, error: quotaErr } = await supabase.rpc('check_ai_quota', {
     p_user_id: user.id,
   });
-  const t4 = Date.now();
-  Sentry.addBreadcrumb({ category: 'generate', message: 'quota_check', data: { ms: t4 - t3 }, level: 'info' });
+  const t5 = Date.now();
+  Sentry.addBreadcrumb({ category: 'generate', message: 'quota_check', data: { ms: t5 - t4 }, level: 'info' });
 
   if (quotaErr) {
     return NextResponse.json(
@@ -115,69 +130,111 @@ export async function POST(req: Request) {
     );
   }
 
-  // 5. Global AI budget check (monthly soft=$50 / hard=$100)
-  try {
-    const budget = await checkBudget();
-    if (budget.hard_exceeded) {
-      await maybySendBudgetAlert('hard', budget.month_spend);
-      return NextResponse.json(
-        { error: { code: 'ai_budget_exceeded', message: 'Generation temporarily unavailable.' } },
-        { status: 503 },
-      );
+  // 6. Global AI budget check — only for Claude (free providers cost $0)
+  if (!isFreeProvider(requestedProvider)) {
+    try {
+      const budget = await checkBudget();
+      if (budget.hard_exceeded) {
+        await maybySendBudgetAlert('hard', budget.month_spend);
+        return NextResponse.json(
+          { error: { code: 'ai_budget_exceeded', message: 'Generation temporarily unavailable.' } },
+          { status: 503 },
+        );
+      }
+      if (budget.soft_exceeded) {
+        void maybySendBudgetAlert('soft', budget.month_spend);
+      }
+    } catch {
+      // fail-open: budget check is best-effort
     }
-    if (budget.soft_exceeded) {
-      void maybySendBudgetAlert('soft', budget.month_spend);
-    }
-  } catch {
-    // fail-open: budget check is best-effort; don't block generation on DB error
   }
-  const t5 = Date.now(); // pre-AI prep complete; SDK call about to start
+  const t6 = Date.now();
   Sentry.addBreadcrumb({
     category: 'generate',
     message: 'budget_check',
-    data: { ms: t5 - t4, pre_ai_ms: t5 - t0 },
+    data: { ms: t6 - t5, pre_ai_ms: t6 - t0 },
     level: 'info',
   });
 
-  // 6. Generate plan — compute remaining time budget so the SDK aborts cleanly
-  //    before Vercel's 60s kill, giving the browser a structured HTTP error.
-  const elapsed = t5 - t0;
-  const sdkTimeout = Math.max(10_000, 55_000 - elapsed); // ≥10s; leaves 5s for response write
-  const result = await generatePlan(wizardInput, { timeout: sdkTimeout });
-  const t6 = Date.now();
-  const durationMs = t6 - t5; // SDK-only duration stored in DB
+  // 7. Generate plan — try requested provider, fall back to Claude on failure
+  const elapsed = t6 - t0;
+  const sdkTimeout = Math.max(10_000, 55_000 - elapsed);
+
+  let result = await (await getProvider(requestedProvider)).generatePlan(wizardInput, { timeout: sdkTimeout });
+  let actualProvider: Provider = requestedProvider;
+
+  // Fallback to Claude if free provider failed
+  if (!result.success && isFreeProvider(requestedProvider)) {
+    console.log(
+      JSON.stringify({
+        event: 'generate.fallback',
+        from: requestedProvider,
+        to: 'claude',
+        error: result.error,
+        stage: result.stage,
+      }),
+    );
+    Sentry.addBreadcrumb({
+      category: 'generate',
+      message: 'provider_fallback',
+      data: { from: requestedProvider, to: 'claude', stage: result.stage },
+      level: 'warning',
+    });
+    const fallbackElapsed = Date.now() - t0;
+    const fallbackTimeout = Math.max(10_000, 55_000 - fallbackElapsed);
+    result = await (await getProvider('claude')).generatePlan(wizardInput, { timeout: fallbackTimeout });
+    actualProvider = 'claude';
+  }
+
+  const t7 = Date.now();
+  const durationMs = t7 - t6;
   Sentry.addBreadcrumb({
     category: 'generate',
     message: 'sdk_call',
-    data: { ms: durationMs, strategy: result.metadata.strategy },
+    data: { ms: durationMs, provider: actualProvider, requested: requestedProvider, strategy: result.metadata.strategy },
     level: 'info',
   });
 
   const serviceClient = createServiceClient();
 
-  // 7. Log ai_generations row (service role bypasses RLS)
+  // 8. Log ai_generations row
   const costUsd =
-    result.success
+    result.success && actualProvider === 'claude'
       ? estimateCost(result.usage.input_tokens, result.usage.output_tokens)
       : 0;
 
+  const modelLabel =
+    actualProvider === 'claude'
+      ? (process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6')
+      : actualProvider === 'groq'
+      ? 'llama-3.3-70b-versatile'
+      : 'qwen-plus';
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const genInsert: any = {
+    user_id: user.id,
+    purpose: 'initial_plan',
+    model: modelLabel,
+    provider: actualProvider, // column added in migration 029; types regenerated post-migration
+    input_tokens: result.success ? result.usage.input_tokens : null,
+    output_tokens: result.success ? result.usage.output_tokens : null,
+    estimated_cost_usd: result.success ? costUsd : null,
+    success: result.success,
+    error_message: result.success
+      ? requestedProvider !== actualProvider
+        ? `Fell back from ${requestedProvider} to ${actualProvider}`
+        : null
+      : result.error,
+    duration_ms: durationMs,
+  };
+
   const { data: genRow, error: genErr } = await serviceClient
     .from('ai_generations')
-    .insert({
-      user_id: user.id,
-      purpose: 'initial_plan',
-      model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6',
-      input_tokens: result.success ? result.usage.input_tokens : null,
-      output_tokens: result.success ? result.usage.output_tokens : null,
-      estimated_cost_usd: result.success ? costUsd : null,
-      success: result.success,
-      error_message: result.success ? null : result.error,
-      duration_ms: durationMs,
-    })
+    .insert(genInsert)
     .select('id')
     .single();
-  const t7 = Date.now();
-  Sentry.addBreadcrumb({ category: 'generate', message: 'db_log', data: { ms: t7 - t6 }, level: 'info' });
+  const t8 = Date.now();
+  Sentry.addBreadcrumb({ category: 'generate', message: 'db_log', data: { ms: t8 - t7 }, level: 'info' });
 
   if (genErr || !genRow) {
     return NextResponse.json(
@@ -186,7 +243,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 8. If generation failed → 502 (not counted toward quota — only success=true rows count)
+  // 9. If generation failed → 502
   if (!result.success) {
     return NextResponse.json(
       {
@@ -199,7 +256,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 9. Persist plan atomically
+  // 10. Persist plan atomically
   let persisted: { planId: string; versionId: string; sessionCount: number };
   try {
     persisted = await persistGeneratedPlan({
@@ -219,36 +276,33 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
-  const t8 = Date.now();
-  const totalMs = t8 - t0;
+  const t9 = Date.now();
+  const totalMs = t9 - t0;
   Sentry.addBreadcrumb({
     category: 'generate',
     message: 'persist',
-    data: { ms: t8 - t7, total_ms: totalMs },
+    data: { ms: t9 - t8, total_ms: totalMs },
     level: 'info',
   });
 
-  // Structured timing log — visible in Vercel Function logs for cold-start budget analysis.
-  // Stages: auth → rate_limit → validate → quota → budget = pre_ai → sdk → db_log → persist → total
   console.log(
     JSON.stringify({
       event: 'generate.timing',
       auth_ms: t1 - t0,
-      rate_limit_ms: t2 - t1,
-      validate_ms: t3 - t2,
-      quota_ms: t4 - t3,
-      budget_ms: t5 - t4,
-      pre_ai_ms: t5 - t0,
+      validate_ms: t3 - t1,
+      rate_limit_ms: t4 - t3,
+      quota_ms: t5 - t4,
+      budget_ms: t6 - t5,
+      pre_ai_ms: t6 - t0,
       sdk_ms: durationMs,
-      db_log_ms: t7 - t6,
-      persist_ms: t8 - t7,
+      db_log_ms: t8 - t7,
+      persist_ms: t9 - t8,
       total_ms: totalMs,
+      provider: actualProvider,
+      requested_provider: requestedProvider,
     }),
   );
 
-  // 10. Return 201
-  // NOTE: ai_generation_count column is deprecated; check_ai_quota derives the
-  // authoritative count via COUNT(*) from ai_generations. No increment needed.
   return NextResponse.json(
     {
       data: {
@@ -258,7 +312,8 @@ export async function POST(req: Request) {
         pace_zones: result.plan.pace_zones,
         checkpoints: result.plan.checkpoints,
         ai_metadata: {
-          model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6',
+          model: modelLabel,
+          provider: actualProvider,
           duration_ms: durationMs,
           input_tokens: result.usage.input_tokens,
           output_tokens: result.usage.output_tokens,

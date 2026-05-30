@@ -122,6 +122,20 @@ test('wizard — all 6 data steps navigable without submission', async ({ page, 
   // Step 6 — Equipment (no required fields)
   await expect(page.getByRole('button', { name: /generate plan/i })).toBeVisible({ timeout: 5_000 });
 
+  // Provider selector should appear above Generate button
+  const providerSelect = page.getByLabel(/select ai provider/i);
+  await expect(providerSelect).toBeVisible({ timeout: 3_000 });
+  // Default is Claude (recommended)
+  await expect(providerSelect).toHaveValue('claude');
+
+  // Switching to Groq shows free-tier disclaimer
+  await providerSelect.selectOption('groq');
+  await expect(page.getByText(/free tier/i)).toBeVisible({ timeout: 2_000 });
+
+  // Switching back to Claude hides disclaimer
+  await providerSelect.selectOption('claude');
+  await expect(page.getByText(/free tier/i)).not.toBeVisible({ timeout: 2_000 });
+
   // Do NOT click Generate — preserves quota
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 });
