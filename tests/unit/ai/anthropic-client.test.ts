@@ -221,14 +221,29 @@ describe('generatePlan — options', () => {
     );
   });
 
-  it('defaults maxRetries to 2 (allows up to 3 attempts)', async () => {
+  it('defaults maxRetries to 0 (single attempt — prevents Vercel 60s timeout on retry cascade)', async () => {
+    const noWeeks = JSON.stringify({ ...PLAN_12W_10K, weeks: undefined, total_weeks: 0 });
+    const client = mockClient([
+      apiResponse(noWeeks),
+      apiResponse(VALID_JSON), // would succeed on retry, but retry is disabled by default
+    ]);
+    const result = await generatePlan(SAMPLE_INPUT, { client });
+
+    // With maxRetries=0, the first (failed) attempt exhausts the budget — no retry
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.attempts).toBe(1);
+    expect(result.stage).toBe('schema');
+  });
+
+  it('maxRetries:2 explicitly allows up to 3 attempts', async () => {
     const noWeeks = JSON.stringify({ ...PLAN_12W_10K, weeks: undefined, total_weeks: 0 });
     const client = mockClient([
       apiResponse(noWeeks),
       apiResponse(noWeeks),
       apiResponse(VALID_JSON),
     ]);
-    const result = await generatePlan(SAMPLE_INPUT, { client });
+    const result = await generatePlan(SAMPLE_INPUT, { client, maxRetries: 2 });
 
     expect(result.success).toBe(true);
     if (!result.success) return;

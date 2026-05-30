@@ -87,8 +87,8 @@ export async function generatePlan(
   opts: AnthropicClientOptions = {},
 ): Promise<GenerationResult> {
   const start = Date.now();
-  const model = opts.model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
-  const maxRetries = opts.maxRetries ?? 2;
+  const model = opts.model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+  const maxRetries = opts.maxRetries ?? 0;
   const sdkTimeout = opts.timeout ?? 50_000;
   const client: ClientLike =
     opts.client ??
