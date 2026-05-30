@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server';
 import { getDashboardData } from '@/lib/dashboard/queries';
 import { melbourneToday } from '@/lib/plans/view-helpers';
 import { SESSION_ABBREV } from '@/lib/plans/view-helpers';
+import { InlineCheckin } from '@/components/dashboard/inline-checkin';
 import type { DashboardData } from '@/lib/dashboard/queries';
+import type { CheckinInput } from '@/lib/schemas';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -113,16 +115,16 @@ function TodayCard({ data }: { data: DashboardData }) {
 
       <div className="flex gap-2 pt-1">
         <Link
-          href={`/session/${next_session.id}`}
+          href={`/log?session=${next_session.id}`}
           className="flex-1 text-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
         >
-          View Session
+          Log Run
         </Link>
         <Link
-          href={`/log?session=${next_session.id}`}
+          href={`/session/${next_session.id}`}
           className="flex-1 text-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
         >
-          Log Run
+          View Details
         </Link>
       </div>
     </div>
@@ -376,7 +378,9 @@ function CoachInviteCTA() {
 export default async function DashboardPage() {
   const user = await requireUser();
   const supabase = await createClient();
-  const [data, viewerRes] = await Promise.all([
+  const today = melbourneToday();
+
+  const [data, viewerRes, checkinRes] = await Promise.all([
     getDashboardData(user.id),
     supabase
       .from('viewer_access')
@@ -384,12 +388,17 @@ export default async function DashboardPage() {
       .eq('athlete_id', user.id)
       .in('status', ['pending', 'active'])
       .limit(1),
+    supabase
+      .from('daily_checkins')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('checkin_date', today)
+      .maybeSingle(),
   ]);
 
   if (!data) return <EmptyState />;
 
   const hasActiveCoach = (viewerRes.data?.length ?? 0) > 0;
-  const today = melbourneToday();
   const dateLabel = new Date(today + 'T00:00:00Z').toLocaleDateString('en-AU', {
     weekday: 'long',
     day: 'numeric',
@@ -397,52 +406,48 @@ export default async function DashboardPage() {
     timeZone: 'UTC',
   });
 
+  const checkinPrefill: Partial<CheckinInput> | null = checkinRes.data
+    ? {
+        checkin_date: checkinRes.data.checkin_date,
+        sleep_hours: checkinRes.data.sleep_hours ?? undefined,
+        resting_hr: checkinRes.data.resting_hr ?? undefined,
+        energy_1to5: checkinRes.data.energy_1to5 ?? undefined,
+        mood_1to5: checkinRes.data.mood_1to5 ?? undefined,
+        niggle_today: checkinRes.data.niggle_today,
+        notes: checkinRes.data.notes ?? undefined,
+      }
+    : null;
+
   return (
     <main className="p-4 md:p-8 max-w-2xl mx-auto space-y-5">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{dateLabel}</p>
-      </div>
+      {/* Date header */}
+      <p className="text-sm font-medium text-slate-500">{dateLabel}</p>
 
-      {/* Alerts */}
-      <AlertsPanel alerts={data.alerts} />
-
-      {/* Today */}
+      {/* Today's Session — hero */}
       <TodayCard data={data} />
 
-      {/* Coach invite CTA — hidden once a coach is active/pending */}
-      {!hasActiveCoach && <CoachInviteCTA />}
+      {/* Inline check-in */}
+      <InlineCheckin today={today} prefill={checkinPrefill} />
 
       {/* Week progress */}
       <WeekProgress data={data} />
 
-      {/* Niggles */}
-      <NigglesIndicator count={data.active_niggles_count} />
+      {/* Coach invite CTA — hidden once a coach is active/pending */}
+      {!hasActiveCoach && <CoachInviteCTA />}
+
+      {/* ─── below fold ─── */}
+
+      {/* Alerts */}
+      <AlertsPanel alerts={data.alerts} />
 
       {/* Readiness */}
       <ReadinessCard data={data} readiness={data.readiness} />
 
+      {/* Active niggles */}
+      <NigglesIndicator count={data.active_niggles_count} />
+
       {/* 4-week trends */}
       <Trends4w trends={data.trends_4w} />
-
-      {/* Quick nav */}
-      <nav className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {[
-          { href: '/plan', label: 'Training Plan' },
-          { href: '/log', label: 'Log Run' },
-          { href: '/check-in', label: 'Check-In' },
-          { href: '/checkpoints', label: 'Checkpoints' },
-        ].map(({ href, label }) => (
-          <Link
-            key={href}
-            href={href}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-center text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
     </main>
   );
 }

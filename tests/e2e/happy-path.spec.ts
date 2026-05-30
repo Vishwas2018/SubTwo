@@ -3,8 +3,8 @@
  * Target: PLAYWRIGHT_BASE_URL (default: https://subtwo.vercel.app)
  *
  * Covers:
- *   1. Dashboard renders with plan data
- *   2. Wizard — all 6 data steps navigable (no generation, preserves quota)
+ *   1. Dashboard renders with plan data (date header, today card, inline check-in)
+ *   2. Wizard — 3 data steps navigable (no generation, preserves quota)
  *   3. Log a run — form submits and redirects to /dashboard
  *   4. Session detail — Planned section visible
  *   5. Settings page renders Profile/Sharing/Data tabs
@@ -38,6 +38,35 @@ test('dashboard loads and shows plan', async ({ page, viewport }) => {
   if (viewport) {
     await assertNoHorizontalScroll(page, viewport.width);
   }
+});
+
+test('dashboard — inline check-in visible (expanded or collapsed)', async ({ page, viewport }) => {
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  // After dashboard loads, inline check-in should be present in one of two states:
+  // - expanded form (not yet checked in today)
+  // - collapsed "Checked in today" banner
+  const hasCheckin = await Promise.race([
+    page.getByText(/checked in today/i).waitFor({ timeout: 8_000 }).then(() => true),
+    page.getByText(/daily check-in/i).waitFor({ timeout: 8_000 }).then(() => true),
+  ]).catch(() => false);
+
+  expect(hasCheckin).toBe(true);
+
+  if (viewport) await assertNoHorizontalScroll(page, viewport.width);
+});
+
+test('dashboard — no quick-nav grid (persistent nav covers navigation)', async ({ page }) => {
+  await page.goto('/dashboard');
+  await page.locator('main').waitFor({ timeout: 8_000 });
+
+  // The old quick-nav grid had 4 links in a 2×2/4-column grid inside <nav>
+  // It should no longer be present; persistent AppNav handles navigation
+  const quickNavLinks = page.locator('main nav a');
+  const count = await quickNavLinks.count();
+  // main nav grid is gone — any links inside main are content links, not the 4-item grid
+  expect(count).toBeLessThan(4);
 });
 
 // ─── Persistent nav ───────────────────────────────────────────────────────────

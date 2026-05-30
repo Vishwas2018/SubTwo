@@ -1478,3 +1478,27 @@ Fits comfortably under 60 s for a 5K/4wk plan. Tighter for 10K/12wk (SDK up to ~
 
 **Blockers:** None
 **Next:** Phase D — dashboard rework
+
+---
+
+## UX Rework — Phase D (2026-05-30)
+
+**Theme:** Dashboard hero = today + log; inline check-in; trends demoted
+
+**Tasks completed:**
+- UX-D-01: Section reorder — date header (no "Dashboard" title) → today → inline check-in → week progress → coach CTA → alerts/readiness/niggles → 4-week trends
+- UX-D-02: TodayCard CTAs swapped — [Log Run] primary (emerald), [View Details] secondary (border)
+- UX-D-03: `components/dashboard/inline-checkin.tsx` — client component; expanded form by default; collapses to "✓ Checked in today · [Edit]" on success; prefill = collapsed
+- UX-D-04: Niggle toggle reveals inline description (notes) field; field hidden when niggle unchecked
+- UX-D-05: Dashboard server component fetches today's check-in via `daily_checkins` (parallel with getDashboardData + viewerRes); passes prefill to InlineCheckin
+- UX-D-06: Quick-nav grid removed (Plan/Log Run/Check-In/Checkpoints grid); persistent AppNav covers navigation
+- UX-D-07: Unit tests — `tests/unit/checkin/inline-checkin.test.tsx` (14 cases: expanded form, niggle toggle, collapse on submit, Edit re-expands, prefill collapsed, prefill with niggle)
+- UX-D-08: E2E — dashboard test updated; 2 new tests: inline check-in visible + no quick-nav grid
+
+**Tasks incomplete:** none
+
+**Test status:** unit 780/784 (1 flaky live-AI timeout — pre-existing) · typecheck clean
+**Commit:** pending
+
+**Blockers:** None
+**Next:** Beta launch prompt
