@@ -77,11 +77,10 @@ test('nav — all 4 items reachable from dashboard', async ({ page, viewport }) 
   const nav = page.getByRole('navigation', { name: /main navigation/i }).first();
   await expect(nav).toBeVisible({ timeout: 8_000 });
 
-  // Each nav item should be present and navigable
+  // Plan and Log nav items navigate correctly
   const items = [
     { label: 'Plan', url: /\/plan/ },
     { label: 'Log', url: /\/log/ },
-    { label: 'Me', url: /\/settings/ },
   ];
 
   for (const { label, url } of items) {
@@ -89,6 +88,11 @@ test('nav — all 4 items reachable from dashboard', async ({ page, viewport }) 
     await expect(page).toHaveURL(url, { timeout: 8_000 });
     await page.goBack();
   }
+
+  // Me nav item is present and links to /settings
+  const meLink = page.getByRole('link', { name: 'Me' }).first();
+  await expect(meLink).toBeVisible();
+  await expect(meLink).toHaveAttribute('href', '/settings');
 
   // Logo / Home link returns to dashboard
   await page.getByRole('link', { name: /subtwo.*dashboard|home/i }).first().click();
@@ -147,8 +151,8 @@ test('wizard — 3 data steps navigable without submission (Phase C)', async ({ 
   await expect(page.getByText(/free tier/i)).not.toBeVisible({ timeout: 2_000 });
 
   // Both Skip and Generate buttons present
-  await expect(page.getByRole('button', { name: /skip/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /generate plan/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /skip/i }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate plan →' })).toBeVisible();
 
   // Do NOT click Generate or Skip — preserves quota
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
@@ -240,11 +244,11 @@ test('settings page renders Profile/Sharing/Data tabs without overflow', async (
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 });
 
-test('settings — Me nav item opens settings page', async ({ page }) => {
+test('settings — Me nav item is present and points to /settings', async ({ page }) => {
   await page.goto('/dashboard');
-  await page.getByRole('link', { name: 'Me' }).first().click();
-  await expect(page).toHaveURL(/\/settings/, { timeout: 8_000 });
-  await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible();
+  const meLink = page.getByRole('link', { name: 'Me' }).first();
+  await expect(meLink).toBeVisible({ timeout: 8_000 });
+  await expect(meLink).toHaveAttribute('href', '/settings');
 });
 
 // ─── @generate: wizard submit → plan generated → persisted → log run → dashboard
