@@ -302,7 +302,8 @@ test('@generate — wizard submit → plan generated → persisted → log run �
   // Step 3 — Optional extras: skip (both buttons go to generation)
   await expect(page.getByRole('heading', { name: /optional extras/i })).toBeVisible({ timeout: 5_000 });
   // Click "Generate plan →" (not Skip — to hit the normal path)
-  await page.getByRole('button', { name: /generate plan/i }).click();
+  // aria-label='Generate plan' — exact match avoids hitting Skip button with same aria-label prefix
+  await page.getByRole('button', { name: 'Generate plan', exact: true }).click();
 
   // ── Wait for generation to complete and redirect to review ────────────────
   await page.waitForTimeout(8_000);

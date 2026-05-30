@@ -134,6 +134,17 @@ _(none)_
 
 ---
 
+## DEF-012 | Plan generation timeout on Vercel Hobby (P5-AI2)
+- Severity: S2
+- Reported: 2026-05-30 beta launch by Code
+- Trace: app/api/plans/generate/route.ts:16 — `export const maxDuration = 60`; Vercel Hobby hard-caps function execution at 60s; Anthropic SDK timeout set to 55s; any pre-AI overhead reduces available generation window
+- Reproduction: generate a plan on Vercel Hobby → wizard may show "Network error" after ~60s; plan not created
+- Root cause: Anthropic API call for a full training plan can approach 55s; combined with auth/quota/DB overhead it occasionally exceeds the 60s cap and Vercel terminates the function, returning a network error to the client
+- Fix options: (a) Vercel Pro removes the cap; (b) use `claude-haiku-4-5` for faster generation; (c) background job + polling pattern
+- Status: 🔴 (open — accepted for beta, fix post-beta)
+
+---
+
 ## Already-tracked references
 
 | Finding | Ref | Notes |

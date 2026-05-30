@@ -1498,7 +1498,36 @@ Fits comfortably under 60 s for a 5K/4wk plan. Tighter for 10K/12wk (SDK up to ~
 **Tasks incomplete:** none
 
 **Test status:** unit 780/784 (1 flaky live-AI timeout — pre-existing) · typecheck clean
-**Commit:** pending
+**Commits:** fc869ab (Phase D), a48fb7a + 2e7e64a + 81e9cff (E2E fixes)
 
 **Blockers:** None
-**Next:** Beta launch prompt
+**Next:** Beta launch
+
+---
+
+## Beta Launch Prep (2026-05-30)
+
+**Theme:** Pre-flight checks, @generate fix, brief published, DEF-012 logged
+
+**Deliverables:**
+- BL-01: Vercel env verified — all required keys present (ANTHROPIC_API_KEY, UPSTASH, SENTRY_DSN, CRON_SECRET, Supabase); GROQ_API_KEY + QWEN_API_KEY absent (expected — optional, provider disabled in UI)
+- BL-02: Migration 029 (`provider` column on `ai_generations`) — migration file confirmed in repo; prod apply requires manual Supabase dashboard check
+- BL-03: Sentry DSN present in Vercel Production + Preview; client + server + edge configs conditional on env var
+- BL-04: Upstash REDIS URL + TOKEN present in Production + Preview; degradation policy (fail-open reads, fail-closed writes) active
+- BL-05: CRON_SECRET confirmed in Vercel; `/api/cron/adjustments` uses Bearer auth
+- BL-06: `@generate` E2E test — strict mode violation fixed (Generate button `aria-label='Generate plan'` — exact match); test itself passes wizard navigation; generation step fails due to DEF-012 (Vercel Hobby 60s timeout) — accepted for beta
+- BL-07: DEF-012 formally logged in DEFECTS.md (Vercel Hobby 60s function timeout on plan generation)
+- BL-08: `docs/BETA_BRIEF.md` published — tester onboarding, test checklist, feedback channel, known limitations
+- BL-09: Beta codes to be minted manually at `/admin/invites` (requires admin browser session)
+- BL-10: Sentry release tag `beta-1.0` to be applied via Sentry dashboard or `sentry-cli releases new beta-1.0`
+
+**Known blockers for full green:**
+- DEF-012: @generate times out on Vercel Hobby — accepted for beta; workaround: retry or use shorter plan distance
+- GROQ_API_KEY / QWEN_API_KEY: not in Vercel — multi-provider smoke blocked (opt-in, not blocking beta)
+- Migration 029 prod apply: verify in Supabase dashboard (can't access DB password from CLI)
+
+**Test status:** unit 780/784 · E2E 31 passed (non-@generate) · @generate ❌ DEF-012
+**Commit:** pending
+
+**Blockers:** DEF-012 (accepted)
+**Next:** Tester outreach — send beta codes
