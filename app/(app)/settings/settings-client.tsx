@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+export type Tab = 'profile' | 'sharing' | 'data';
+
 type Profile = {
   id: string;
   email: string;
@@ -15,20 +17,32 @@ type Profile = {
 };
 
 type ActivePlanInfo = {
+  id: string;
   race_name: string | null;
   race_date: string;
   race_distance_km: number;
   total_weeks: number;
 } | null;
 
-type Tab = 'profile' | 'integrations' | 'sharing' | 'data';
+// ─── Profile tab ──────────────────────────────────────────────────────────────
 
-function ProfileTab({ profile }: { profile: Profile }) {
+function ProfileTab({
+  profile,
+  activePlan,
+}: {
+  profile: Profile;
+  activePlan: ActivePlanInfo;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [displayName, setDisplayName] = useState(profile.display_name ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // Start over (regenerate) state
+  const [confirmRegen, setConfirmRegen] = useState(false);
+  const [regenPending, setRegenPending] = useState(false);
+  const [regenError, setRegenError] = useState<string | null>(null);
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -55,56 +69,153 @@ function ProfileTab({ profile }: { profile: Profile }) {
     });
   }
 
+  async function handleRegen() {
+    if (!activePlan) return;
+    setRegenPending(true);
+    setRegenError(null);
+    try {
+      const res = await fetch(`/api/plans/${activePlan.id}/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'User requested plan restart from settings.' }),
+      });
+      const json = (await res.json()) as {
+        data?: { plan_id: string };
+        error?: { code?: string; message: string };
+      };
+      if (!res.ok) {
+        const msg =
+          json.error?.code === 'quota_exhausted'
+            ? 'AI generation quota exhausted. Try again tomorrow.'
+            : (json.error?.message ?? 'Regeneration failed. Please try again.');
+        setRegenError(msg);
+        return;
+      }
+      const planId = json.data?.plan_id ?? activePlan.id;
+      router.push(`/onboarding/review?plan=${planId}`);
+    } catch {
+      setRegenError('Network error. Please try again.');
+    } finally {
+      setRegenPending(false);
+    }
+  }
+
   return (
-    <form onSubmit={handleSave} className="space-y-5 max-w-md">
-      {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
-      )}
-      {saved && (
-        <div className="rounded-md bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700">
-          Profile saved.
+    <div className="space-y-8 max-w-md">
+      {/* ── Display name ─────────────────────────────────────────────── */}
+      <form onSubmit={handleSave} className="space-y-5">
+        {error && (
+          <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
+        )}
+        {saved && (
+          <div className="rounded-md bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700">
+            Profile saved.
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="text" value={profile.email} disabled className="bg-slate-50 text-slate-500" />
+          <p className="text-xs text-slate-400">Email cannot be changed here.</p>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="display-name">Display name</Label>
+          <Input
+            id="display-name"
+            type="text"
+            maxLength={100}
+            placeholder="e.g. Alex"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label>Timezone</Label>
+          <Input type="text" value={profile.timezone} disabled className="bg-slate-50 text-slate-500" />
+          <p className="text-xs text-slate-400">Timezone is set to Australia/Melbourne.</p>
+        </div>
+
+        <div className="space-y-1">
+          <Label>AI generation count</Label>
+          <p className="text-sm text-slate-600">{profile.ai_generation_count} / 3 used</p>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          {isPending ? 'Saving…' : 'Save Profile'}
+        </Button>
+      </form>
+
+      {/* ── Race info ─────────────────────────────────────────────────── */}
+      <div>
+        <p className="text-sm font-medium text-slate-700 mb-3">Race info (from active plan)</p>
+        <RaceInfoSection plan={activePlan} />
+      </div>
+
+      {/* ── Start over ───────────────────────────────────────────────── */}
+      {activePlan && (
+        <div className="border-t border-slate-100 pt-5 space-y-3">
+          <div>
+            <p className="text-sm font-medium text-slate-700">Start over</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Regenerate your training plan with the same goals but a fresh AI pass.
+            </p>
+          </div>
+
+          {!confirmRegen ? (
+            <button
+              type="button"
+              className="text-sm text-amber-600 hover:text-amber-700 hover:underline font-medium"
+              onClick={() => setConfirmRegen(true)}
+            >
+              Regenerate plan →
+            </button>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+              <p className="text-sm text-amber-800">
+                This uses <span className="font-semibold">1 AI generation</span> (
+                {profile.ai_generation_count}/3 used). Your current plan will be replaced.
+              </p>
+              {regenError && (
+                <p role="alert" className="text-sm text-red-600">{regenError}</p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setConfirmRegen(false); setRegenError(null); }}
+                  disabled={regenPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={() => { void handleRegen(); }}
+                  disabled={regenPending || profile.ai_generation_count >= 3}
+                >
+                  {regenPending ? 'Generating…' : 'Confirm regenerate'}
+                </Button>
+              </div>
+              {profile.ai_generation_count >= 3 && (
+                <p className="text-xs text-slate-500">Quota exhausted — no generations remaining.</p>
+              )}
+            </div>
+          )}
         </div>
       )}
-
-      <div className="space-y-1">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="text" value={profile.email} disabled className="bg-slate-50 text-slate-500" />
-        <p className="text-xs text-slate-400">Email cannot be changed here.</p>
-      </div>
-
-      <div className="space-y-1">
-        <Label htmlFor="display-name">Display name</Label>
-        <Input
-          id="display-name"
-          type="text"
-          maxLength={100}
-          placeholder="e.g. Alex"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-        />
-      </div>
-
-      <div className="space-y-1">
-        <Label>Timezone</Label>
-        <Input type="text" value={profile.timezone} disabled className="bg-slate-50 text-slate-500" />
-        <p className="text-xs text-slate-400">Timezone is set to Australia/Melbourne.</p>
-      </div>
-
-      <div className="space-y-1">
-        <Label>AI generation count</Label>
-        <p className="text-sm text-slate-600">{profile.ai_generation_count} / 3 used</p>
-      </div>
-
-      <Button
-        type="submit"
-        disabled={isPending}
-        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-      >
-        {isPending ? 'Saving…' : 'Save Profile'}
-      </Button>
-    </form>
+    </div>
   );
 }
+
+// ─── Race info section ────────────────────────────────────────────────────────
 
 function RaceInfoSection({ plan }: { plan: ActivePlanInfo }) {
   if (!plan) {
@@ -145,20 +256,7 @@ function RaceInfoSection({ plan }: { plan: ActivePlanInfo }) {
   );
 }
 
-function IntegrationsTab() {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-        <p className="text-sm font-medium text-slate-600">Strava Integration</p>
-        <p className="text-xs text-slate-400 mt-1">Coming in Phase 5</p>
-      </div>
-      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-        <p className="text-sm font-medium text-slate-600">Garmin Integration</p>
-        <p className="text-xs text-slate-400 mt-1">Coming in Phase 6</p>
-      </div>
-    </div>
-  );
-}
+// ─── Sharing tab ──────────────────────────────────────────────────────────────
 
 type Invite = {
   id: string;
@@ -173,7 +271,7 @@ type Invite = {
 
 function SharingTab() {
   const [invites, setInvites] = useState<Invite[]>([]);
-  const [loading, setLoading] = useState(true); // starts true; only set false after first load
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [canComment, setCanComment] = useState(true);
@@ -192,7 +290,6 @@ function SharingTab() {
     }
   }
 
-  // Load on mount
   useEffect(() => { loadInvites(); }, []);
 
   async function handleInvite(e: React.FormEvent) {
@@ -373,6 +470,8 @@ function SharingTab() {
   );
 }
 
+// ─── Data tab ─────────────────────────────────────────────────────────────────
+
 function DataTab({ email }: { email: string }) {
   const [deleting, setDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -407,7 +506,6 @@ function DataTab({ email }: { email: string }) {
 
   return (
     <div className="space-y-6 max-w-md">
-      {/* Export */}
       <div className="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
         <div>
           <p className="font-medium text-slate-900">Export your data</p>
@@ -415,16 +513,11 @@ function DataTab({ email }: { email: string }) {
             Download a complete JSON export of all your training data including runs, check-ins, checkpoints, and niggles.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleExport}
-        >
+        <Button type="button" variant="outline" onClick={handleExport}>
           Download JSON Export
         </Button>
       </div>
 
-      {/* Delete */}
       <div className="rounded-lg border border-red-200 bg-red-50 p-5 space-y-3">
         <div>
           <p className="font-medium text-red-900">Delete account</p>
@@ -484,25 +577,29 @@ function DataTab({ email }: { email: string }) {
   );
 }
 
+// ─── Main client ──────────────────────────────────────────────────────────────
+
 export function SettingsClient({
   profile,
   activePlan,
+  initialTab = 'profile',
 }: {
   profile: Profile;
   activePlan: ActivePlanInfo;
+  initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>('profile');
+  const [tab, setTab] = useState<Tab>(initialTab);
 
+  // Integrations tab hidden until Strava/Garmin ship (Phase 5/6)
   const tabs: { id: Tab; label: string }[] = [
     { id: 'profile', label: 'Profile' },
-    { id: 'integrations', label: 'Integrations' },
     { id: 'sharing', label: 'Sharing' },
     { id: 'data', label: 'Data' },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Tabs */}
+      {/* Tab strip */}
       <div className="flex gap-1 rounded-lg bg-slate-100 p-1 max-w-full overflow-x-auto">
         {tabs.map((t) => (
           <button
@@ -519,17 +616,7 @@ export function SettingsClient({
         ))}
       </div>
 
-      {/* Tab content */}
-      {tab === 'profile' && (
-        <div className="space-y-6">
-          <ProfileTab profile={profile} />
-          <div>
-            <p className="text-sm font-medium text-slate-700 mb-3">Race info (from active plan)</p>
-            <RaceInfoSection plan={activePlan} />
-          </div>
-        </div>
-      )}
-      {tab === 'integrations' && <IntegrationsTab />}
+      {tab === 'profile' && <ProfileTab profile={profile} activePlan={activePlan} />}
       {tab === 'sharing' && <SharingTab />}
       {tab === 'data' && <DataTab email={profile.email} />}
 

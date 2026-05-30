@@ -43,8 +43,8 @@ export default async function CheckpointsPage() {
   if (!plan) {
     return (
       <main className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
-        <Link href="/plan" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
-          ← Back to Plan
+        <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
+          ← Dashboard
         </Link>
         <h1 className="text-2xl font-bold text-slate-900">Checkpoints</h1>
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center space-y-3">
@@ -89,8 +89,8 @@ export default async function CheckpointsPage() {
 
   return (
     <main className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
-      <Link href="/plan" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
-        ← Back to Plan
+      <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
+        ← Dashboard
       </Link>
 
       <div>

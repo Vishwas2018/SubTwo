@@ -1,9 +1,15 @@
 import { requireUser } from '@/lib/auth/session';
 import { createClient } from '@/lib/supabase/server';
 import { SettingsClient } from './settings-client';
+import type { Tab } from './settings-client';
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const user = await requireUser();
+  const { tab } = await searchParams;
   const supabase = await createClient();
 
   const [profileRes, planRes] = await Promise.all([
@@ -14,7 +20,7 @@ export default async function SettingsPage() {
       .single(),
     supabase
       .from('plans')
-      .select('race_name, race_date, race_distance_km, total_weeks')
+      .select('id, race_name, race_date, race_distance_km, total_weeks')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .maybeSingle(),
@@ -28,6 +34,9 @@ export default async function SettingsPage() {
     );
   }
 
+  const validTabs: Tab[] = ['profile', 'sharing', 'data'];
+  const initialTab: Tab = validTabs.includes(tab as Tab) ? (tab as Tab) : 'profile';
+
   return (
     <main className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
       <div>
@@ -38,6 +47,7 @@ export default async function SettingsPage() {
       <SettingsClient
         profile={profileRes.data}
         activePlan={planRes.data ?? null}
+        initialTab={initialTab}
       />
     </main>
   );

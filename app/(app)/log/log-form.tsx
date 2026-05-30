@@ -86,11 +86,7 @@ export function LogForm({ defaultDate, defaultSessionId, sessions }: Props) {
           return;
         }
 
-        if (sessionId) {
-          router.push(`/session/${sessionId}`);
-        } else {
-          router.push('/plan');
-        }
+        router.push('/dashboard');
       } catch {
         setError('Network error. Please try again.');
       }

@@ -21,6 +21,7 @@ const PROFILE = {
 };
 
 const PLAN = {
+  id: 'plan-1',
   race_name: 'Melbourne Marathon',
   race_date: '2026-10-04',
   race_distance_km: 42.2,
@@ -36,12 +37,12 @@ beforeEach(() => {
 });
 
 describe('SettingsClient', () => {
-  it('renders all 4 tabs', () => {
+  it('renders Profile, Sharing, and Data tabs (Integrations hidden until Phase 5/6)', () => {
     setup();
     expect(screen.getByRole('button', { name: 'Profile' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Integrations' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sharing' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Data' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Integrations' })).not.toBeInTheDocument();
   });
 
   it('shows Profile tab by default', () => {
@@ -67,12 +68,9 @@ describe('SettingsClient', () => {
     expect(screen.getByText(/no active training plan/i)).toBeInTheDocument();
   });
 
-  it('switches to Integrations tab', async () => {
-    const user = userEvent.setup();
+  it('shows Start over section when plan is active', () => {
     setup();
-    await user.click(screen.getByRole('button', { name: 'Integrations' }));
-    expect(screen.getByText(/strava/i)).toBeInTheDocument();
-    expect(screen.getByText(/coming in phase 5/i)).toBeInTheDocument();
+    expect(screen.getByText(/regenerate plan/i)).toBeInTheDocument();
   });
 
   it('switches to Sharing tab', async () => {
@@ -154,5 +152,10 @@ describe('SettingsClient', () => {
 
     await user.type(confirmInput, 'test@example.com');
     expect(deleteBtn).not.toBeDisabled();
+  });
+
+  it('initialTab prop sets active tab on mount', () => {
+    render(<SettingsClient profile={PROFILE} activePlan={PLAN} initialTab="data" />);
+    expect(screen.getByRole('button', { name: /download json export/i })).toBeInTheDocument();
   });
 });

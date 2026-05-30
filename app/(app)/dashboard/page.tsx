@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth/session';
+import { createClient } from '@/lib/supabase/server';
 import { getDashboardData } from '@/lib/dashboard/queries';
 import { melbourneToday } from '@/lib/plans/view-helpers';
 import { SESSION_ABBREV } from '@/lib/plans/view-helpers';
@@ -351,14 +352,43 @@ function NigglesIndicator({ count }: { count: number }) {
   );
 }
 
+// ─── Coach invite CTA ─────────────────────────────────────────────────────────
+
+function CoachInviteCTA() {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-medium text-slate-900">Share with your coach</p>
+        <p className="text-xs text-slate-500 mt-0.5">Give a coach read-only access to your training.</p>
+      </div>
+      <Link
+        href="/settings?tab=sharing"
+        className="shrink-0 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline whitespace-nowrap"
+      >
+        Invite →
+      </Link>
+    </div>
+  );
+}
+
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const data = await getDashboardData(user.id);
+  const supabase = await createClient();
+  const [data, viewerRes] = await Promise.all([
+    getDashboardData(user.id),
+    supabase
+      .from('viewer_access')
+      .select('id')
+      .eq('athlete_id', user.id)
+      .in('status', ['pending', 'active'])
+      .limit(1),
+  ]);
 
   if (!data) return <EmptyState />;
 
+  const hasActiveCoach = (viewerRes.data?.length ?? 0) > 0;
   const today = melbourneToday();
   const dateLabel = new Date(today + 'T00:00:00Z').toLocaleDateString('en-AU', {
     weekday: 'long',
@@ -380,6 +410,9 @@ export default async function DashboardPage() {
 
       {/* Today */}
       <TodayCard data={data} />
+
+      {/* Coach invite CTA — hidden once a coach is active/pending */}
+      {!hasActiveCoach && <CoachInviteCTA />}
 
       {/* Week progress */}
       <WeekProgress data={data} />

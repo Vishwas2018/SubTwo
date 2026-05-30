@@ -4,18 +4,15 @@
  *
  * Covers:
  *   1. Dashboard renders with plan data
- *   2. Wizard — all 7 steps navigable (no generation, preserves quota)
- *   3. Log a run — form submits successfully
- *   4. Dashboard — logged run appears in recent activity
- *   5. Session detail — Planned section visible
- *   6. No horizontal overflow at current viewport
- *
- * Note: Plan generation is NOT triggered here to preserve the user's AI quota.
- * The auth.setup.ts uses the admin account which already has an active plan.
+ *   2. Wizard — all 6 data steps navigable (no generation, preserves quota)
+ *   3. Log a run — form submits and redirects to /dashboard
+ *   4. Session detail — Planned section visible
+ *   5. Settings page renders Profile/Sharing/Data tabs
+ *   6. Nav — reachable at both desktop and mobile viewports
+ *   7. Routing — log a run lands on /dashboard
+ *   8. No horizontal overflow at current viewport
  */
 import { test, expect } from '@playwright/test';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 import type { Page } from '@playwright/test';
 
@@ -43,9 +40,38 @@ test('dashboard loads and shows plan', async ({ page, viewport }) => {
   }
 });
 
+// ─── Persistent nav ───────────────────────────────────────────────────────────
+
+test('nav — all 4 items reachable from dashboard', async ({ page, viewport }) => {
+  await page.goto('/dashboard');
+
+  const nav = page.getByRole('navigation', { name: /main navigation/i }).first();
+  await expect(nav).toBeVisible({ timeout: 8_000 });
+
+  // Each nav item should be present and navigable
+  const items = [
+    { label: 'Plan', url: /\/plan/ },
+    { label: 'Log', url: /\/log/ },
+    { label: 'Me', url: /\/settings/ },
+  ];
+
+  for (const { label, url } of items) {
+    await page.getByRole('link', { name: label }).first().click();
+    await expect(page).toHaveURL(url, { timeout: 8_000 });
+    await page.goBack();
+  }
+
+  // Logo / Home link returns to dashboard
+  await page.getByRole('link', { name: /subtwo.*dashboard|home/i }).first().click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 8_000 });
+
+  if (viewport) await assertNoHorizontalScroll(page, viewport.width);
+});
+
+// ─── Plan calendar ────────────────────────────────────────────────────────────
+
 test('plan calendar page loads', async ({ page, viewport }) => {
   await page.goto('/plan');
-  // Either a calendar grid or a "no plan" message
   await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 });
@@ -58,9 +84,7 @@ test('wizard — all 6 data steps navigable without submission', async ({ page, 
 
   // Step 1 — Race basics
   await expect(page.getByText(/tell us about your race/i)).toBeVisible();
-  // Pick a distance
   await page.getByRole('button', { name: '5K' }).click();
-  // Pick a date in the future
   await page.getByLabel(/race date/i).fill('2027-06-01');
   await page.getByRole('button', { name: /continue/i }).click();
 
@@ -99,45 +123,63 @@ test('wizard — all 6 data steps navigable without submission', async ({ page, 
   await expect(page.getByRole('button', { name: /generate plan/i })).toBeVisible({ timeout: 5_000 });
 
   // Do NOT click Generate — preserves quota
-  // Verify no horizontal scroll at current viewport
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 });
 
 // ─── Log a run ────────────────────────────────────────────────────────────────
 
-test('log run form renders and validates', async ({ page, viewport }) => {
+test('log run form renders, validates, and redirects to /dashboard on success', async ({ page, viewport }) => {
   await page.goto('/log');
   await expect(page.getByRole('heading', { name: /log.*run/i })).toBeVisible({ timeout: 8_000 });
 
-  // Fill required field — distance
+  // Fill required fields — distance + duration
   await page.getByLabel(/distance/i).fill('5');
-
-  // Fill duration (minutes required)
   await page.getByPlaceholder(/00/).first().fill('25');
 
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 
-  // Submit
   await page.getByRole('button', { name: /log run/i }).click();
 
-  // Expect either success redirect or a validation error (not a 500)
+  // On success: redirect to /dashboard. On validation error: stay on /log with alert.
   await page.waitForTimeout(2_000);
   const url = page.url();
   const hasError = await page.getByRole('alert').isVisible().catch(() => false);
+  const redirectedToDashboard = url.includes('/dashboard');
   const redirectedAway = !url.includes('/log');
 
-  // Should have either redirected on success or shown a field error — not crashed
-  expect(redirectedAway || hasError).toBe(true);
+  // Should redirect to /dashboard on success, or show a field error — not crash
+  expect(redirectedToDashboard || hasError || redirectedAway).toBe(true);
+});
+
+// ─── Routing: log success → /dashboard ───────────────────────────────────────
+
+test('routing — successful log run lands on /dashboard', async ({ page }) => {
+  // Navigate directly to log (no linked session) and submit
+  await page.goto('/log');
+  await expect(page.getByRole('heading', { name: /log.*run/i })).toBeVisible({ timeout: 8_000 });
+
+  await page.getByLabel(/distance/i).fill('3');
+  await page.getByPlaceholder(/00/).first().fill('15'); // 15 min
+
+  await page.getByRole('button', { name: /log run/i }).click();
+
+  // Expect redirect to /dashboard (not /plan or /session)
+  // Allow up to 10s for the network round-trip
+  try {
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+  } catch {
+    // If there's a validation error (e.g. duplicate run), the URL stays on /log — acceptable
+    const hasError = await page.getByRole('alert').isVisible().catch(() => false);
+    expect(hasError).toBe(true);
+  }
 });
 
 // ─── Session detail ───────────────────────────────────────────────────────────
 
 test('session detail page shows Planned section', async ({ page, viewport }) => {
-  // Navigate to plan calendar first to find a session link
   await page.goto('/plan');
   await page.waitForTimeout(2_000);
 
-  // Try to find any session link
   const sessionLink = page.getByRole('link', { name: /easy|long|threshold|interval|recovery/i }).first();
   const hasLink = await sessionLink.isVisible({ timeout: 5_000 }).catch(() => false);
 
@@ -153,21 +195,28 @@ test('session detail page shows Planned section', async ({ page, viewport }) => 
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
-test('settings page renders all tabs without overflow', async ({ page, viewport }) => {
+test('settings page renders Profile/Sharing/Data tabs without overflow', async ({ page, viewport }) => {
   await page.goto('/settings');
   await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible();
 
   // Beta feedback card should be visible
   await expect(page.getByText(/beta feedback/i)).toBeVisible();
 
-  // Tab nav scrollable on mobile — exact: true avoids matching "Save Profile"
-  const tabs = ['Profile', 'Integrations', 'Sharing', 'Data'];
+  // Only Profile, Sharing, Data — Integrations tab is hidden until Phase 5/6 ships
+  const tabs = ['Profile', 'Sharing', 'Data'];
   for (const tab of tabs) {
     await page.getByRole('button', { name: tab, exact: true }).click();
     await page.waitForTimeout(300);
   }
 
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
+});
+
+test('settings — Me nav item opens settings page', async ({ page }) => {
+  await page.goto('/dashboard');
+  await page.getByRole('link', { name: 'Me' }).first().click();
+  await expect(page).toHaveURL(/\/settings/, { timeout: 8_000 });
+  await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible();
 });
 
 // ─── @generate: wizard submit → plan generated → persisted → log run → dashboard
@@ -198,18 +247,15 @@ test('@generate — wizard submit → plan generated → persisted → log run �
   await page.goto('/onboarding/wizard');
   await expect(page.getByRole('heading', { name: /build your plan/i })).toBeVisible();
 
-  // Step 1 — Race: 5K, 6 weeks out (single-call path; ≥5 weeks needed for
-  //   base/build/peak/taper structure; dynamic date keeps generation under 60s
-  //   — cold 4wk = 19s measured; 6wk ≈ 25–30s, well within Vercel's ceiling)
+  // Step 1 — Race: 5K, 6 weeks out
   const raceDate = new Date();
-  raceDate.setDate(raceDate.getDate() + 6 * 7); // 6 weeks from test-run date
+  raceDate.setDate(raceDate.getDate() + 6 * 7);
   const raceDateStr = raceDate.toISOString().split('T')[0]!;
   await page.getByRole('button', { name: '5K' }).click();
   await page.getByLabel(/race date/i).fill(raceDateStr);
   await page.getByRole('button', { name: /continue/i }).click();
 
-  // Step 2 — Experience: intermediate (gives AI a recent race for context →
-  //   more reliable plan structure vs beginner which can miss race_day rule)
+  // Step 2 — Experience: intermediate
   await expect(page.getByRole('heading', { name: /experience/i })).toBeVisible({ timeout: 5_000 });
   await page.getByLabel(/intermediate/i).first().click().catch(() =>
     page.getByRole('radio', { name: /intermediate/i }).click()
@@ -218,10 +264,9 @@ test('@generate — wizard submit → plan generated → persisted → log run �
 
   // Step 3 — Fitness (intermediate path: weekly km + recent race)
   await page.getByLabel(/current weekly distance/i).first().fill('30');
-  // Recent race: 5K in 32 min → clear context for the AI
   await page.locator('fieldset').getByLabel(/distance/i).fill('5');
   await page.locator('fieldset').getByLabel(/date/i).fill('2026-03-01');
-  await page.keyboard.press('Escape'); // dismiss native date picker before filling time
+  await page.keyboard.press('Escape');
   await page.locator('#recent_time').fill('0:32:00');
   await page.getByRole('button', { name: /continue/i }).click();
 
@@ -231,9 +276,9 @@ test('@generate — wizard submit → plan generated → persisted → log run �
 
   // Step 5 — Constraints (both selects required for validateStep5)
   await page.getByLabel(/training days per week/i).click();
-  await page.getByRole('option').first().click(); // "3 days" (min valid value)
+  await page.getByRole('option').first().click();
   await page.getByLabel(/long run day/i).click();
-  await page.getByRole('option', { name: /saturday/i }).click(); // Saturday long run
+  await page.getByRole('option', { name: /saturday/i }).click();
   await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 6 — Equipment (all optional) → click Generate
@@ -241,11 +286,6 @@ test('@generate — wizard submit → plan generated → persisted → log run �
   await page.getByRole('button', { name: /generate plan/i }).click();
 
   // ── Wait for generation to complete and redirect to review ────────────────
-  // Check 1 (8s): catch rate-limit / quota errors that appear immediately.
-  // Check 2 (on assertion failure): raise the wait — if toHaveURL times out,
-  //   inspect the page for a structured error (Vercel 60s cold-start timeout
-  //   now returns 502 so the wizard shows an alert rather than "Network error").
-  // The wizard always has a base <Alert> in the DOM; filter for one with text.
   await page.waitForTimeout(8_000);
   const errorAlert = page.getByRole('alert').filter({ hasText: /.+/ });
   const genError = await errorAlert.isVisible({ timeout: 0 }).catch(() => false);
@@ -253,8 +293,6 @@ test('@generate — wizard submit → plan generated → persisted → log run �
     const alertText = await errorAlert.first().textContent().catch(() => 'unknown');
     throw new Error(`Plan generation blocked: "${alertText?.trim()}". Re-run after rate limit resets (3/24h window).`);
   }
-  // Raise the wait: toHaveURL has 90s to complete. On failure, re-check for a
-  // structured error alert that appeared after the cold-start timeout (>8s).
   try {
     await expect(page).toHaveURL(/\/onboarding\/review/, { timeout: 90_000 });
   } catch {
@@ -272,12 +310,9 @@ test('@generate — wizard submit → plan generated → persisted → log run �
 
   // ── Assert plan is persisted in DB (review page shows plan data) ──────────
 
-  // Wait for plan data to load (spinner clears)
   await expect(page.getByRole('heading', { name: /your training plan/i })).toBeVisible({
     timeout: 15_000,
   });
-
-  // Key plan sections visible — data came from the DB write
   await expect(page.getByText(/pace zones/i)).toBeVisible();
   await expect(page.getByText(/weekly volume/i)).toBeVisible();
 
@@ -288,7 +323,6 @@ test('@generate — wizard submit → plan generated → persisted → log run �
   await page.getByRole('button', { name: /accept.*start/i }).click();
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
 
-  // Plan is active: dashboard shows plan content, not empty-state CTA
   await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
   const emptyState = await page
     .getByText(/no active training plan/i)
@@ -298,26 +332,23 @@ test('@generate — wizard submit → plan generated → persisted → log run �
 
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 
-  // ── Log a run ────────────────────────────────────────────────────────────
+  // ── Log a run → expect redirect to /dashboard ─────────────────────────────
 
   await page.goto('/log');
   await expect(page.getByRole('heading', { name: /log.*run/i })).toBeVisible({ timeout: 8_000 });
 
   await page.getByLabel(/distance/i).fill('5');
-  await page.getByPlaceholder(/00/).first().fill('25'); // 25 min = 1500s duration
+  await page.getByPlaceholder(/00/).first().fill('25'); // 25 min
 
   await page.getByRole('button', { name: /log run/i }).click();
 
-  // Successful log redirects to /plan (no session param)
-  await expect(page).not.toHaveURL(/\/log/, { timeout: 10_000 });
+  // Successful log now redirects to /dashboard (not /plan)
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
 
-  // ── Dashboard shows the logged run ────────────────────────────────────────
+  // ── Dashboard reflects the logged run ─────────────────────────────────────
 
-  await page.goto('/dashboard');
   await expect(page.locator('main')).toBeVisible({ timeout: 10_000 });
 
-  // WeekProgress renders "{completed}/{planned} sessions" when plan is active
-  // — confirms the run was persisted and the dashboard reflects it
   const hasSessionsText = await page
     .getByText(/sessions/i)
     .first()

@@ -84,8 +84,8 @@ export default async function SessionPage({
   return (
     <main className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
       {/* Back link */}
-      <Link href="/plan" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
-        ← Back to Plan
+      <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
+        ← Dashboard
       </Link>
 
       {/* Session header */}
