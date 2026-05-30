@@ -1522,12 +1522,40 @@ Fits comfortably under 60 s for a 5K/4wk plan. Tighter for 10K/12wk (SDK up to ~
 - BL-10: Sentry release tag `beta-1.0` to be applied via Sentry dashboard or `sentry-cli releases new beta-1.0`
 
 **Known blockers for full green:**
-- DEF-012: @generate times out on Vercel Hobby — accepted for beta; workaround: retry or use shorter plan distance
+- ~~DEF-012: @generate times out on Vercel Hobby~~ — FIXED (commit 5df297b)
+- DEF-013: migration 029 not applied to prod — @generate blocked until manual Supabase dashboard step
 - GROQ_API_KEY / QWEN_API_KEY: not in Vercel — multi-provider smoke blocked (opt-in, not blocking beta)
-- Migration 029 prod apply: verify in Supabase dashboard (can't access DB password from CLI)
 
-**Test status:** unit 780/784 · E2E 31 passed (non-@generate) · @generate ❌ DEF-012
-**Commit:** pending
+**Test status:** unit 780/784 · E2E 31 passed (non-@generate) · @generate ❌ DEF-013
+**Commits:** 23fd2d7 (beta launch prep)
 
-**Blockers:** DEF-012 (accepted)
-**Next:** Tester outreach — send beta codes
+**Blockers:** DEF-013 (migration 029 pending manual apply)
+**Next:** User applies migration 029 → re-run @generate → mint beta codes
+
+---
+
+## DEF-012 Diagnosis — @generate cold measurement (2026-05-30)
+
+**Delta source identified:** App-level retry loop (`maxRetries=2`) was the root cause, not model speed.
+
+**Root cause breakdown:**
+- Day 33 baseline (19 s) = single successful attempt, no retry needed
+- Phase B/C wizard changes introduced more complex input → attempt 1 slightly more likely to return a response with minor schema issues → triggers retry
+- Retry starts at t≈22 s; sdkTimeout was calculated ONCE before AI call at t≈3 s → sdkTimeout ≈ 52 s; Vercel kills at t=60 s; second attempt gets killed 38 s in
+- Client sees TCP disconnect → wizard shows "Network error"
+- Key: `fix(ai): disable SDK retries` (`4b9bf6c`) disabled SDK-level retries (`maxRetries: 0` in Anthropic constructor) but left the APP-level retry loop (`for attempt in 1..maxRetries+1`) with its default `maxRetries=2`
+
+**Second bug found:** `process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6'` — `??` does not fall through for `""` (empty string); Vercel env pull returns `""` for encrypted vars; actual prod value unknown but `||` fix makes empty string safe
+
+**Fixes applied (commit 5df297b):**
+1. `maxRetries: 0` default in `generatePlan` — single attempt, no retry; callers that need retries must explicitly pass `maxRetries: N`
+2. `??` → `||` for model env var — empty string falls through to `'claude-sonnet-4-6'`
+
+**Post-fix result:** Vercel logs changed from 504 → 500; "Network error" → "Failed to log generation." — confirms timeout fixed, new failure is migration 029 missing
+
+**Migration 029 (DEF-013):** needs manual apply via Supabase dashboard:
+- Project: visible in Supabase dashboard > SQL Editor
+- SQL: `ALTER TABLE public.ai_generations ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'claude'; ALTER TABLE public.ai_generations ADD CONSTRAINT ai_generations_provider_check CHECK (provider IN ('claude', 'groq', 'qwen'));`
+- After applying: re-run `pnpm test:e2e:generate` — expected green
+
+**Commits:** 5df297b (DEF-012 fix) · 23fd2d7 (DEF-013 logged)

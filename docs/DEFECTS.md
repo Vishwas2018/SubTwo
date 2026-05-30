@@ -134,14 +134,28 @@ _(none)_
 
 ---
 
-## DEF-012 | Plan generation timeout on Vercel Hobby (P5-AI2)
+## DEF-012 | Plan generation timeout → "Network error" (P5-AI2)
 - Severity: S2
 - Reported: 2026-05-30 beta launch by Code
-- Trace: app/api/plans/generate/route.ts:16 — `export const maxDuration = 60`; Vercel Hobby hard-caps function execution at 60s; Anthropic SDK timeout set to 55s; any pre-AI overhead reduces available generation window
-- Reproduction: generate a plan on Vercel Hobby → wizard may show "Network error" after ~60s; plan not created
-- Root cause: Anthropic API call for a full training plan can approach 55s; combined with auth/quota/DB overhead it occasionally exceeds the 60s cap and Vercel terminates the function, returning a network error to the client
-- Fix options: (a) Vercel Pro removes the cap; (b) use `claude-haiku-4-5` for faster generation; (c) background job + polling pattern
-- Status: 🔴 (open — accepted for beta, fix post-beta)
+- Trace: `lib/ai/anthropic-client.ts:91` — `maxRetries = opts.maxRetries ?? 2`; route did not pass maxRetries; default of 2 allowed up to 3 Anthropic API attempts; Day 33 baseline (19 s) was a single successful attempt; subsequent attempts where attempt 1 fails schema validation could retry into the 60 s Vercel wall
+- Second bug: `process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6'` — `??` does not fall through for `""` (empty string); ANTHROPIC_MODEL is encrypted in Vercel so CLI pulls show `""`; actual Vercel value unknown
+- Reproduction: generate a plan → wizard shows "Network error" after 60 s if attempt 1 fails schema validation and triggers a retry
+- Root cause: retry loop not deadline-aware; the fix from `4b9bf6c` (disable SDK retries) left the app-level retry loop untouched
+- Fix applied (commit 5df297b): default `maxRetries 2→0` (single attempt, no retry in prod); `??` changed to `||` for model env var so empty string falls through to default
+- Status: 🟢 (timeout fixed; generation now returns clean error on schema failure rather than timing out)
+
+## DEF-013 | Migration 029 not applied to prod — provider column missing
+- Severity: S1 (blocks generation logging, @generate test fails)
+- Reported: 2026-05-30 beta launch by Code
+- Trace: `app/api/plans/generate/route.ts:218` — `provider: actualProvider` in genInsert; if `ai_generations.provider` column doesn't exist → INSERT error → 500 "Failed to log generation."
+- Reproduction: after DEF-012 fix, @generate test fails with "Failed to log generation." (Vercel logs: POST /api/plans/generate 500)
+- Root cause: migration 029 file exists in repo but was not applied to the production Supabase database
+- Fix: apply `supabase/migrations/20260530000100_029_ai_generations_provider.sql` manually via Supabase dashboard SQL editor
+  ```sql
+  ALTER TABLE public.ai_generations ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'claude';
+  ALTER TABLE public.ai_generations ADD CONSTRAINT ai_generations_provider_check CHECK (provider IN ('claude', 'groq', 'qwen'));
+  ```
+- Status: 🔴 (open — requires manual Supabase dashboard step; @generate blocked until applied)
 
 ---
 
