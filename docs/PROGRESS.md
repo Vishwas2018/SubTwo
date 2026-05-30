@@ -1428,3 +1428,30 @@ Fits comfortably under 60 s for a 5K/4wk plan. Tighter for 10K/12wk (SDK up to ~
 **Blockers:** ...
 **Next:** Day X+1 — <theme>
 ```
+
+---
+
+## UX Rework — Phase B (2026-05-30)
+
+**Theme:** Persistent nav · Routing fixes · Multi-provider AI
+
+**Tasks completed:**
+- UX-B-01: Persistent nav already in place from Phase A — Home/Plan/Log/Me; mobile bottom tab / desktop sidebar; logo → /dashboard; role="navigation"; not rendered on /onboarding, /coach, /admin
+- UX-B-02: Routing — back links → /dashboard on /log, /check-in, /session/[id], /checkpoints, /niggles; log-form success pushes /dashboard
+- UX-B-03: Settings via "Me" tab; Integrations hidden; Start over / Regenerate with confirm + quota warning in Profile tab
+- UX-B-04: Coach invite CTA on dashboard, hidden when hasActiveCoach
+- UX-B-05: `lib/ai/providers/`: PlanProvider interface + claude/groq/qwen adapters; OpenAI-compatible fetch for Groq + Qwen (2 attempts); same Zod schema; auto-fallback to Claude on free provider failure
+- UX-B-06: Migration 029 — `provider` column on `ai_generations` (NOT NULL DEFAULT 'claude')
+- UX-B-07: `/api/plans/generate` — per-provider rate limits (Claude 3/24h, Groq/Qwen 10/24h); budget check skipped for free providers; fallback logged
+- UX-B-08: Wizard step 6: provider dropdown (claude default; Groq/Qwen free-tier disclaimer)
+- UX-B-09: E2E — provider selector assertions in wizard nav test
+
+**Tasks incomplete:** none
+
+**Test status:** unit 751/755 (4 flaky live-AI timeouts — pre-existing) · typecheck clean
+**Commit:** `3b54552`
+
+**ENV additions:** `GROQ_API_KEY`, `QWEN_API_KEY` — both optional; provider disabled in UI if absent
+
+**Blockers:** None
+**Next:** Phase C — wizard consolidation
