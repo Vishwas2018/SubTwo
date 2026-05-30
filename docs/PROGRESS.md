@@ -1455,3 +1455,26 @@ Fits comfortably under 60 s for a 5K/4wk plan. Tighter for 10K/12wk (SDK up to ~
 
 **Blockers:** None
 **Next:** Phase C — wizard consolidation
+
+---
+
+## UX Rework — Phase C (2026-05-30)
+
+**Theme:** Wizard 6→3 input steps + smart defaults
+
+**Tasks completed:**
+- UX-C-01: `wizard-types.ts` — `days_per_week: '4'`, `long_run_day: 'sat'` defaults
+- UX-C-02: `step2-about-you.tsx` — merged experience level + fitness (beginner/intermediate/advanced) + training schedule with defaults
+- UX-C-03: `step3-optional-extras.tsx` — goal time, injury history, notes, equipment; always skippable; two CTAs: "Skip — set these later" + "Generate plan →"
+- UX-C-04: `wizard-progress.tsx` — 4-step labels: Your Race / About You / Optional extras / Generating
+- UX-C-05: `wizard/page.tsx` — TOTAL_STEPS=4; step 3 navigation with Skip + Generate; provider selector moved to step 3
+- UX-C-06: Unit tests — 15 new cases (validateStep2AboutYou, validateStep3OptionalExtras, skip path assemble, smart defaults); validateStep5 guard updated for new defaults
+- UX-C-07: E2E — wizard nav test rewritten for 3-step flow; @generate test updated (steps 1-3)
+
+**Tasks incomplete:** none
+
+**Test status:** unit 766/770 (1 flaky live-AI timeout — pre-existing) · typecheck clean
+**Commit:** `3ff4695`
+
+**Blockers:** None
+**Next:** Phase D — dashboard rework
