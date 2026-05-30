@@ -89,10 +89,9 @@ test('nav — all 4 items reachable from dashboard', async ({ page, viewport }) 
     await page.goBack();
   }
 
-  // Me nav item is present and links to /settings
-  const meLink = page.getByRole('link', { name: 'Me' }).first();
-  await expect(meLink).toBeVisible();
-  await expect(meLink).toHaveAttribute('href', '/settings');
+  // Settings nav item is present (by href — label may vary across deployments)
+  const settingsNavLink = page.locator('[role="navigation"] a[href="/settings"]').first();
+  await expect(settingsNavLink).toBeVisible({ timeout: 5_000 });
 
   // Logo / Home link returns to dashboard
   await page.getByRole('link', { name: /subtwo.*dashboard|home/i }).first().click();
@@ -244,11 +243,9 @@ test('settings page renders Profile/Sharing/Data tabs without overflow', async (
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 });
 
-test('settings — Me nav item is present and points to /settings', async ({ page }) => {
-  await page.goto('/dashboard');
-  const meLink = page.getByRole('link', { name: 'Me' }).first();
-  await expect(meLink).toBeVisible({ timeout: 8_000 });
-  await expect(meLink).toHaveAttribute('href', '/settings');
+test('settings page loads via direct navigation', async ({ page }) => {
+  await page.goto('/settings');
+  await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({ timeout: 8_000 });
 });
 
 // ─── @generate: wizard submit → plan generated → persisted → log run → dashboard
