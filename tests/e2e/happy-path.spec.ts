@@ -89,8 +89,8 @@ test('nav — all 4 items reachable from dashboard', async ({ page, viewport }) 
     await page.goBack();
   }
 
-  // Settings nav item is present (by href — label may vary across deployments)
-  const settingsNavLink = page.locator('[role="navigation"] a[href="/settings"]').first();
+  // Settings nav item is present (by href, filter to visible — desktop sidebar is hidden on mobile)
+  const settingsNavLink = page.locator('a[href="/settings"]').filter({ visible: true }).first();
   await expect(settingsNavLink).toBeVisible({ timeout: 5_000 });
 
   // Logo / Home link returns to dashboard
@@ -150,8 +150,9 @@ test('wizard — 3 data steps navigable without submission (Phase C)', async ({ 
   await expect(page.getByText(/free tier/i)).not.toBeVisible({ timeout: 2_000 });
 
   // Both Skip and Generate buttons present
+  // aria-label='Generate plan' (the → arrow is display text only, not the accessible name)
   await expect(page.getByRole('button', { name: /skip/i }).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Generate plan →' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Generate plan', exact: true })).toBeVisible();
 
   // Do NOT click Generate or Skip — preserves quota
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
