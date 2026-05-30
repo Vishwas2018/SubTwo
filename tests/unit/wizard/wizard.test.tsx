@@ -17,6 +17,9 @@ import { validateStep3 } from '@/components/wizard/steps/step3-fitness';
 import { validateStep4 } from '@/components/wizard/steps/step4-goal';
 import { validateStep5 } from '@/components/wizard/steps/step5-constraints';
 import { validateStep6 } from '@/components/wizard/steps/step6-equipment';
+// Phase C new validators
+import { validateStep2AboutYou } from '@/components/wizard/steps/step2-about-you';
+import { validateStep3OptionalExtras } from '@/components/wizard/steps/step3-optional-extras';
 import { assembleWizardInput } from '@/components/wizard/assemble-wizard-input';
 import { Step1RaceBasics } from '@/components/wizard/steps/step1-race-basics';
 import { Step2Experience } from '@/components/wizard/steps/step2-experience';
@@ -203,7 +206,8 @@ describe('validateStep5', () => {
   });
 
   it('missing long_run_day → false', () => {
-    expect(validateStep5(makeData({ days_per_week: '5' }))).toBe(false);
+    // Explicitly clear the 'sat' default to test the guard
+    expect(validateStep5(makeData({ days_per_week: '5', long_run_day: '' }))).toBe(false);
   });
 
   it('days < 3 → false', () => {
@@ -284,6 +288,132 @@ describe('assembleWizardInput', () => {
       can_run_5k_without_stopping: 'yes',
       days_per_week: '4',
       long_run_day: 'sun',
+    });
+    const result = assembleWizardInput(data);
+    expect(result.success).toBe(true);
+  });
+});
+
+// ─── Phase C: smart defaults ──────────────────────────────────────────────────
+
+describe('INITIAL_FORM_DATA smart defaults (Phase C)', () => {
+  it('days_per_week defaults to "4"', () => {
+    expect(INITIAL_FORM_DATA.days_per_week).toBe('4');
+  });
+
+  it('long_run_day defaults to "sat"', () => {
+    expect(INITIAL_FORM_DATA.long_run_day).toBe('sat');
+  });
+});
+
+// ─── Phase C: validateStep2AboutYou ──────────────────────────────────────────
+
+describe('validateStep2AboutYou — beginner', () => {
+  const base = makeData({
+    experience_level: 'beginner',
+    weekly_km_current: '20',
+    longest_recent_run_km: '8',
+    can_run_5k_without_stopping: 'yes',
+    // days_per_week and long_run_day come from INITIAL_FORM_DATA defaults ('4', 'sat')
+  });
+
+  it('valid beginner data → true', () => {
+    expect(validateStep2AboutYou(base)).toBe(true);
+  });
+
+  it('missing experience_level → false', () => {
+    expect(validateStep2AboutYou({ ...base, experience_level: '' })).toBe(false);
+  });
+
+  it('missing can_run_5k → false', () => {
+    expect(validateStep2AboutYou({ ...base, can_run_5k_without_stopping: '' })).toBe(false);
+  });
+
+  it('missing weekly_km → false', () => {
+    expect(validateStep2AboutYou({ ...base, weekly_km_current: '' })).toBe(false);
+  });
+});
+
+describe('validateStep2AboutYou — intermediate', () => {
+  const base = makeData({
+    experience_level: 'intermediate',
+    weekly_km_current: '50',
+    recent_race_distance_km: '10',
+    recent_race_time: '0:50:00',
+    recent_race_date: '2025-01-01',
+  });
+
+  it('valid intermediate → true', () => {
+    expect(validateStep2AboutYou(base)).toBe(true);
+  });
+
+  it('missing recent_race_time → false', () => {
+    expect(validateStep2AboutYou({ ...base, recent_race_time: '' })).toBe(false);
+  });
+
+  it('missing recent_race_date → false', () => {
+    expect(validateStep2AboutYou({ ...base, recent_race_date: '' })).toBe(false);
+  });
+});
+
+describe('validateStep2AboutYou — advanced', () => {
+  const base = makeData({
+    experience_level: 'advanced',
+    weekly_km_current: '80',
+    recent_race_distance_km: '21.1',
+    recent_race_time: '1:35:00',
+    recent_race_date: '2025-01-01',
+    peak_weekly_km: '100',
+    years_running: '5',
+  });
+
+  it('valid advanced → true', () => {
+    expect(validateStep2AboutYou(base)).toBe(true);
+  });
+
+  it('missing peak_weekly_km → false', () => {
+    expect(validateStep2AboutYou({ ...base, peak_weekly_km: '' })).toBe(false);
+  });
+
+  it('missing years_running → false', () => {
+    expect(validateStep2AboutYou({ ...base, years_running: '' })).toBe(false);
+  });
+});
+
+describe('validateStep3OptionalExtras (Phase C)', () => {
+  it('always returns true (all optional, fully skippable)', () => {
+    expect(validateStep3OptionalExtras()).toBe(true);
+  });
+});
+
+// ─── Phase C: skip path — assembleWizardInput with smart defaults ─────────────
+
+describe('assembleWizardInput — skip path (empty optional extras + smart defaults)', () => {
+  it('beginner with defaults, no optional extras → success', () => {
+    // Uses INITIAL_FORM_DATA defaults: days_per_week='4', long_run_day='sat'
+    const data = makeData({
+      race_distance_km: '5',
+      race_date: '2027-06-01',
+      experience_level: 'beginner',
+      weekly_km_current: '15',
+      longest_recent_run_km: '5',
+      can_run_5k_without_stopping: 'yes',
+      // goal_type, injury_history, notes, shoes, fuel, weight_kg all empty → OK
+    });
+    const result = assembleWizardInput(data);
+    expect(result.success).toBe(true);
+  });
+
+  it('intermediate with defaults, no optional extras → success', () => {
+    const data = makeData({
+      race_distance_km: '10',
+      race_date: '2027-06-01',
+      experience_level: 'intermediate',
+      weekly_km_current: '40',
+      recent_race_distance_km: '5',
+      recent_race_time: '0:28:00',
+      recent_race_date: '2025-01-01',
+      // goal_type empty → no goal_time_seconds included (fine, it's optional)
     });
     const result = assembleWizardInput(data);
     expect(result.success).toBe(true);

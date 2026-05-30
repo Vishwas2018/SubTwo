@@ -78,54 +78,35 @@ test('plan calendar page loads', async ({ page, viewport }) => {
 
 // ─── Wizard navigation ────────────────────────────────────────────────────────
 
-test('wizard — all 6 data steps navigable without submission', async ({ page, viewport }) => {
+test('wizard — 3 data steps navigable without submission (Phase C)', async ({ page, viewport }) => {
   await page.goto('/onboarding/wizard');
   await expect(page.getByRole('heading', { name: /build your plan/i })).toBeVisible();
 
-  // Step 1 — Race basics
+  // Step 1 — Your Race
   await expect(page.getByText(/tell us about your race/i)).toBeVisible();
   await page.getByRole('button', { name: '5K' }).click();
   await page.getByLabel(/race date/i).fill('2027-06-01');
   await page.getByRole('button', { name: /continue/i }).click();
 
-  // Step 2 — Experience
-  await expect(page.getByRole('heading', { name: /experience/i })).toBeVisible({ timeout: 5_000 });
+  // Step 2 — About You (experience + fitness + schedule with smart defaults)
+  await expect(page.getByRole('heading', { name: /about you/i })).toBeVisible({ timeout: 5_000 });
+  // Experience level
   await page.getByLabel(/beginner/i).first().check().catch(() =>
-    page.getByRole('radio').first().check()
+    page.getByRole('radio', { name: /beginner/i }).click()
   );
-  await page.getByRole('button', { name: /continue/i }).click();
-
-  // Step 3 — Fitness (beginner path: fill required fields to enable Continue)
-  await expect(page.getByRole('heading', { name: /current fitness/i })).toBeVisible({ timeout: 5_000 }).catch(() => {});
+  // Fitness fields (beginner path)
   await page.getByLabel(/current weekly distance/i).first().fill('20');
   await page.getByLabel(/longest recent run/i).fill('8');
   await page.getByRole('radio', { name: /yes, comfortably/i }).click();
+  // Training schedule has smart defaults (4 days, Saturday) — no action needed
   await page.getByRole('button', { name: /continue/i }).click();
 
-  // Step 4 — Goal (must select a goal type to enable Continue)
-  await page.getByRole('radio', { name: /suggest a realistic target/i }).click();
-  await page.getByRole('button', { name: /continue/i }).click();
+  // Step 3 — Optional extras (skippable)
+  await expect(page.getByRole('heading', { name: /optional extras/i })).toBeVisible({ timeout: 5_000 });
 
-  // Step 5 — Constraints (selects for days + long run day)
-  const daysSelect = page.getByLabel(/training days/i);
-  if (await daysSelect.isVisible()) {
-    await daysSelect.click();
-    await page.getByRole('option').first().click();
-  }
-  const longRunSelect = page.getByLabel(/long run day/i);
-  if (await longRunSelect.isVisible()) {
-    await longRunSelect.click();
-    await page.getByRole('option').first().click();
-  }
-  await page.getByRole('button', { name: /continue/i }).click();
-
-  // Step 6 — Equipment (no required fields)
-  await expect(page.getByRole('button', { name: /generate plan/i })).toBeVisible({ timeout: 5_000 });
-
-  // Provider selector should appear above Generate button
+  // Provider selector on step 3
   const providerSelect = page.getByLabel(/select ai provider/i);
   await expect(providerSelect).toBeVisible({ timeout: 3_000 });
-  // Default is Claude (recommended)
   await expect(providerSelect).toHaveValue('claude');
 
   // Switching to Groq shows free-tier disclaimer
@@ -136,7 +117,11 @@ test('wizard — all 6 data steps navigable without submission', async ({ page, 
   await providerSelect.selectOption('claude');
   await expect(page.getByText(/free tier/i)).not.toBeVisible({ timeout: 2_000 });
 
-  // Do NOT click Generate — preserves quota
+  // Both Skip and Generate buttons present
+  await expect(page.getByRole('button', { name: /skip/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /generate plan/i })).toBeVisible();
+
+  // Do NOT click Generate or Skip — preserves quota
   if (viewport) await assertNoHorizontalScroll(page, viewport.width);
 });
 
@@ -256,12 +241,12 @@ test('@generate — wizard submit → plan generated → persisted → log run �
 }) => {
   test.setTimeout(180_000); // Haiku ~19s gen + wizard nav + review load + accept + log
 
-  // ── Fill wizard steps 1–6, then click "Generate plan →" ─────────────────
+  // ── Fill wizard steps 1–3, then click "Generate plan →" ─────────────────
 
   await page.goto('/onboarding/wizard');
   await expect(page.getByRole('heading', { name: /build your plan/i })).toBeVisible();
 
-  // Step 1 — Race: 5K, 6 weeks out
+  // Step 1 — Your Race: 5K, 6 weeks out
   const raceDate = new Date();
   raceDate.setDate(raceDate.getDate() + 6 * 7);
   const raceDateStr = raceDate.toISOString().split('T')[0]!;
@@ -269,34 +254,23 @@ test('@generate — wizard submit → plan generated → persisted → log run �
   await page.getByLabel(/race date/i).fill(raceDateStr);
   await page.getByRole('button', { name: /continue/i }).click();
 
-  // Step 2 — Experience: intermediate
-  await expect(page.getByRole('heading', { name: /experience/i })).toBeVisible({ timeout: 5_000 });
+  // Step 2 — About You: intermediate path
+  await expect(page.getByRole('heading', { name: /about you/i })).toBeVisible({ timeout: 5_000 });
   await page.getByLabel(/intermediate/i).first().click().catch(() =>
     page.getByRole('radio', { name: /intermediate/i }).click()
   );
-  await page.getByRole('button', { name: /continue/i }).click();
-
-  // Step 3 — Fitness (intermediate path: weekly km + recent race)
+  // Fitness: weekly km + recent race
   await page.getByLabel(/current weekly distance/i).first().fill('30');
   await page.locator('fieldset').getByLabel(/distance/i).fill('5');
   await page.locator('fieldset').getByLabel(/date/i).fill('2026-03-01');
   await page.keyboard.press('Escape');
-  await page.locator('#recent_time').fill('0:32:00');
+  await page.locator('#recent_race_time').fill('0:32:00');
+  // Training schedule has smart defaults (4 days, Saturday) — no action needed
   await page.getByRole('button', { name: /continue/i }).click();
 
-  // Step 4 — Goal: let AI suggest a realistic target
-  await page.getByRole('radio', { name: /suggest a realistic target/i }).click();
-  await page.getByRole('button', { name: /continue/i }).click();
-
-  // Step 5 — Constraints (both selects required for validateStep5)
-  await page.getByLabel(/training days per week/i).click();
-  await page.getByRole('option').first().click();
-  await page.getByLabel(/long run day/i).click();
-  await page.getByRole('option', { name: /saturday/i }).click();
-  await page.getByRole('button', { name: /continue/i }).click();
-
-  // Step 6 — Equipment (all optional) → click Generate
-  await expect(page.getByRole('button', { name: /generate plan/i })).toBeVisible({ timeout: 5_000 });
+  // Step 3 — Optional extras: skip (both buttons go to generation)
+  await expect(page.getByRole('heading', { name: /optional extras/i })).toBeVisible({ timeout: 5_000 });
+  // Click "Generate plan →" (not Skip — to hit the normal path)
   await page.getByRole('button', { name: /generate plan/i }).click();
 
   // ── Wait for generation to complete and redirect to review ────────────────

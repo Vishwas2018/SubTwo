@@ -53,8 +53,9 @@ export const INITIAL_FORM_DATA: WizardFormData = {
   years_running: '',
   goal_type: '',
   goal_time: '',
-  days_per_week: '',
-  long_run_day: '',
+  // Smart defaults — eliminates silent-fail dropdowns when user skips Step 3
+  days_per_week: '4',
+  long_run_day: 'sat',
   injury_history: '',
   notes: '',
   shoes: '',

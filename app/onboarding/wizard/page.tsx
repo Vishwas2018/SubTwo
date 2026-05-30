@@ -6,52 +6,31 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { WizardProgress } from '@/components/wizard/wizard-progress';
 import { Step1RaceBasics, validateStep1 } from '@/components/wizard/steps/step1-race-basics';
-import { Step2Experience, validateStep2 } from '@/components/wizard/steps/step2-experience';
-import { Step3Fitness, validateStep3 } from '@/components/wizard/steps/step3-fitness';
-import { Step4Goal, validateStep4 } from '@/components/wizard/steps/step4-goal';
-import { Step5Constraints, validateStep5 } from '@/components/wizard/steps/step5-constraints';
-import { Step6Equipment, validateStep6 } from '@/components/wizard/steps/step6-equipment';
+import { Step2AboutYou, validateStep2AboutYou } from '@/components/wizard/steps/step2-about-you';
+import { Step3OptionalExtras } from '@/components/wizard/steps/step3-optional-extras';
 import { Step7Generating } from '@/components/wizard/steps/step7-generating';
 import { type WizardFormData, INITIAL_FORM_DATA } from '@/components/wizard/wizard-types';
 import { assembleWizardInput } from '@/components/wizard/assemble-wizard-input';
 import type { Provider } from '@/lib/ai/providers';
 
-const TOTAL_STEPS = 7;
+// Step 4 = Generating (previously Step 7)
+const TOTAL_STEPS = 4;
 
 const PROVIDER_OPTIONS: {
   value: Provider;
   label: string;
-  description: string;
   free: boolean;
 }[] = [
-  {
-    value: 'claude',
-    label: 'SubTwo default (recommended)',
-    description: 'Claude — best quality',
-    free: false,
-  },
-  {
-    value: 'groq',
-    label: 'Groq — free, fast',
-    description: '',
-    free: true,
-  },
-  {
-    value: 'qwen',
-    label: 'Qwen — free',
-    description: '',
-    free: true,
-  },
+  { value: 'claude', label: 'SubTwo default (recommended)', free: false },
+  { value: 'groq',  label: 'Groq — free, fast',            free: true  },
+  { value: 'qwen',  label: 'Qwen — free',                  free: true  },
 ];
 
 function isStepValid(step: number, data: WizardFormData): boolean {
   switch (step) {
     case 1: return validateStep1(data);
-    case 2: return validateStep2(data);
-    case 3: return validateStep3(data);
-    case 4: return validateStep4(data);
-    case 5: return validateStep5(data);
-    case 6: return validateStep6();
+    case 2: return validateStep2AboutYou(data);
+    case 3: return true; // always skippable
     default: return false;
   }
 }
@@ -73,16 +52,21 @@ export default function WizardPage() {
   }
 
   async function handleContinue() {
-    if (step < 6) {
+    if (step < 3) {
       setStep((s) => s + 1);
       return;
     }
-    // Step 6 → Step 7: begin generation
-    setStep(7);
-    await submitPlan();
+    // Step 3 → Step 4: begin generation
+    await startGeneration();
   }
 
-  async function submitPlan() {
+  async function handleSkip() {
+    // Skip optional extras and generate immediately
+    await startGeneration();
+  }
+
+  async function startGeneration() {
+    setStep(4);
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -108,11 +92,7 @@ export default function WizardPage() {
       if (!res.ok) {
         const code = json.error?.code ?? '';
         const msg = json.error?.message ?? 'Generation failed. Please try again.';
-        if (code === 'quota_exhausted') {
-          setSubmitError('quota: ' + msg);
-        } else {
-          setSubmitError(msg);
-        }
+        setSubmitError(code === 'quota_exhausted' ? 'quota: ' + msg : msg);
         setIsSubmitting(false);
         return;
       }
@@ -132,7 +112,7 @@ export default function WizardPage() {
     }
   }
 
-  const canContinue = step < 7 && isStepValid(step, formData);
+  const canContinue = step < 4 && isStepValid(step, formData);
   const selectedOption = PROVIDER_OPTIONS.find((o) => o.value === provider)!;
 
   return (
@@ -141,7 +121,7 @@ export default function WizardPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Build your plan</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Answer 6 quick questions — your AI coach handles the rest.
+            Answer a few questions — your AI coach handles the rest.
           </p>
         </div>
 
@@ -153,25 +133,16 @@ export default function WizardPage() {
               <Step1RaceBasics data={formData} onChange={handleChange} />
             )}
             {step === 2 && (
-              <Step2Experience data={formData} onChange={handleChange} />
+              <Step2AboutYou data={formData} onChange={handleChange} />
             )}
             {step === 3 && (
-              <Step3Fitness data={formData} onChange={handleChange} />
+              <Step3OptionalExtras data={formData} onChange={handleChange} />
             )}
             {step === 4 && (
-              <Step4Goal data={formData} onChange={handleChange} />
-            )}
-            {step === 5 && (
-              <Step5Constraints data={formData} onChange={handleChange} />
-            )}
-            {step === 6 && (
-              <Step6Equipment data={formData} onChange={handleChange} />
-            )}
-            {step === 7 && (
               <Step7Generating
                 error={submitError}
                 onRetry={() => {
-                  setStep(6);
+                  setStep(3);
                   setSubmitError(null);
                 }}
               />
@@ -179,36 +150,61 @@ export default function WizardPage() {
           </CardContent>
         </Card>
 
-        {/* Provider selector — shown above Generate button on step 6 */}
-        {step === 6 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
+        {/* ── Step 3: provider selector + Skip + Generate ── */}
+        {step === 3 && (
+          <>
+            <div className="space-y-2">
               <label htmlFor="provider-select" className="text-sm font-medium text-slate-700">
                 AI provider
               </label>
+              <select
+                id="provider-select"
+                value={provider}
+                onChange={(e) => setProvider(e.target.value as Provider)}
+                aria-label="Select AI provider"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                {PROVIDER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              {selectedOption.free && (
+                <p className="text-xs text-amber-600">
+                  Free tier — variable quality, may take longer.
+                </p>
+              )}
             </div>
-            <select
-              id="provider-select"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as Provider)}
-              aria-label="Select AI provider"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              {PROVIDER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            {selectedOption.free && (
-              <p className="text-xs text-amber-600">
-                Free tier — variable quality, may take longer.
-              </p>
-            )}
-          </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="ghost" onClick={handleBack} aria-label="Go back">
+                ← Back
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => { void handleSkip(); }}
+                  disabled={isSubmitting}
+                  aria-label="Skip optional extras and generate plan"
+                >
+                  Skip — set these later
+                </Button>
+                <Button
+                  onClick={() => { void handleContinue(); }}
+                  disabled={isSubmitting}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  aria-label="Generate plan"
+                >
+                  Generate plan →
+                </Button>
+              </div>
+            </div>
+          </>
         )}
 
-        {step < 7 && (
+        {/* ── Steps 1 & 2: standard Back / Continue ── */}
+        {(step === 1 || step === 2) && (
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
@@ -220,12 +216,12 @@ export default function WizardPage() {
             </Button>
 
             <Button
-              onClick={handleContinue}
+              onClick={() => { void handleContinue(); }}
               disabled={!canContinue || isSubmitting}
               className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-30"
-              aria-label={step === 6 ? 'Generate plan' : 'Continue to next step'}
+              aria-label={step === 2 ? 'Continue to optional extras' : 'Continue to next step'}
             >
-              {step === 6 ? 'Generate plan →' : 'Continue →'}
+              Continue →
             </Button>
           </div>
         )}

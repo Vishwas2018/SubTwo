@@ -8,12 +8,9 @@ type Props = {
 };
 
 const STEP_LABELS = [
-  'Race',
-  'Experience',
-  'Fitness',
-  'Goal',
-  'Constraints',
-  'Equipment',
+  'Your Race',
+  'About You',
+  'Optional extras',
   'Generating',
 ];
 
