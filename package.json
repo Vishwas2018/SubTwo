@@ -19,7 +19,10 @@
     "audit:rls": "cross-env NODE_OPTIONS=--use-system-ca tsx scripts/audit-rls.ts",
     "test:e2e": "cross-env NODE_OPTIONS=--use-system-ca playwright test",
     "test:e2e:ui": "cross-env NODE_OPTIONS=--use-system-ca playwright test --ui",
-    "test:e2e:generate": "cross-env NODE_OPTIONS=--use-system-ca playwright test --grep \"@generate\" --project chromium"
+    "test:e2e:generate": "cross-env NODE_OPTIONS=--use-system-ca playwright test --grep \"@generate\" --project chromium",
+    "test:e2e:smoke": "cross-env NODE_OPTIONS=--use-system-ca playwright test --grep \"@smoke\" --project chromium",
+    "mint:beta": "cross-env NODE_OPTIONS=--use-system-ca tsx scripts/mint-beta-codes.ts",
+    "release:beta": "sentry-cli releases new beta-1.0 && sentry-cli releases set-commits beta-1.0 --auto && sentry-cli releases finalize beta-1.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
