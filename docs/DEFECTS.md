@@ -155,7 +155,13 @@ _(none)_
   ALTER TABLE public.ai_generations ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'claude';
   ALTER TABLE public.ai_generations ADD CONSTRAINT ai_generations_provider_check CHECK (provider IN ('claude', 'groq', 'qwen'));
   ```
-- Status: 🔴 (open — requires manual Supabase dashboard step; @generate blocked until applied)
+- Fix: Go to https://supabase.com/dashboard/project/jyxbichqqvaojryvvcce/sql/new and run:
+  ```sql
+  ALTER TABLE public.ai_generations ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'claude';
+  ALTER TABLE public.ai_generations ADD CONSTRAINT ai_generations_provider_check CHECK (provider IN ('claude', 'groq', 'qwen'));
+  ```
+  Then run: `pnpm test:e2e:generate` — expected green
+- Status: 🔴 (open — one manual paste in Supabase SQL editor; @generate blocked until applied)
 
 ---
 
