@@ -195,6 +195,20 @@ export async function POST(req: Request) {
     level: 'info',
   });
 
+  if (!result.success) {
+    console.log(
+      JSON.stringify({
+        event: 'generate.failure',
+        stage: result.stage,
+        error: result.error,
+        sdk_ms: durationMs,
+        attempts: result.attempts,
+        strategy: result.metadata.strategy,
+        provider: actualProvider,
+      }),
+    );
+  }
+
   const serviceClient = createServiceClient();
 
   // 8. Log ai_generations row
