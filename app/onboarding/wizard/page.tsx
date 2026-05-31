@@ -21,9 +21,8 @@ const PROVIDER_OPTIONS: {
   label: string;
   free: boolean;
 }[] = [
-  { value: 'claude', label: 'SubTwo default (recommended)', free: false },
-  { value: 'groq',  label: 'Groq — free, fast',            free: true  },
-  { value: 'qwen',  label: 'Qwen — free',                  free: true  },
+  { value: 'claude', label: 'Claude — premium quality (default)', free: false },
+  { value: 'groq',   label: 'Groq — free, fast',                  free: true  },
 ];
 
 function isStepValid(step: number, data: WizardFormData): boolean {
