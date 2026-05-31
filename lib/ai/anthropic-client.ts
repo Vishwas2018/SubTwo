@@ -88,7 +88,7 @@ export async function generatePlan(
 ): Promise<GenerationResult> {
   const start = Date.now();
   const model = opts.model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
-  const maxRetries = opts.maxRetries ?? 0;
+  const maxRetries = opts.maxRetries ?? 1;
   const sdkTimeout = opts.timeout ?? 50_000;
   const client: ClientLike =
     opts.client ??
@@ -102,25 +102,35 @@ export async function generatePlan(
   const totalWeeks = computeTotalWeeks(input);
 
   if (totalWeeks > 12) {
-    return generatePlanBatch(input, { start, model, maxRetries, client });
+    return generatePlanBatch(input, { start, model, maxRetries, client, sdkTimeout });
   }
-  return generatePlanSingle(input, { start, model, maxRetries, client });
+  return generatePlanSingle(input, { start, model, maxRetries, client, sdkTimeout });
 }
 
 // ─── Internal context ─────────────────────────────────────────────────────────
 
-type InternalCtx = { start: number; model: string; maxRetries: number; client: ClientLike };
+type InternalCtx = { start: number; model: string; maxRetries: number; client: ClientLike; sdkTimeout: number };
 
 // ─── Single-call path (≤12 weeks) ─────────────────────────────────────────────
 
+// Minimum time budget required to attempt another API call (ms).
+// Set just above the cold-start overhead so we don't waste the last ~19 s of budget.
+const MIN_RETRY_BUDGET_MS = 20_000;
+
 async function generatePlanSingle(input: WizardInput, ctx: InternalCtx): Promise<GenerationResult> {
-  const { start, model, maxRetries, client } = ctx;
+  const { start, model, maxRetries, client, sdkTimeout } = ctx;
   const usage = { input_tokens: 0, output_tokens: 0 };
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
     { role: 'user', content: buildUserPrompt(input) },
   ];
 
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    // Budget gate: don't start a retry if less than MIN_RETRY_BUDGET_MS remains in the
+    // total sdkTimeout window. This prevents cascading retries from blowing Vercel's 60s
+    // maxDuration ceiling while still allowing one retry when there is budget to spare.
+    if (attempt > 1 && sdkTimeout - (Date.now() - start) < MIN_RETRY_BUDGET_MS) {
+      break; // fall through to unreachable — loop exits, throw below
+    }
     let rawText: string;
     try {
       const response = await client.messages.create({
