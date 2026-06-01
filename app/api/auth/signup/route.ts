@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
 
 const SignupSchema = z.object({
   email: z.string().email().max(254),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   invite_code: z.string().regex(/^[A-Z0-9]{8}$/, 'Invalid code format'),
 });
 
@@ -43,11 +44,20 @@ export async function POST(req: Request) {
 
   const parsed = SignupSchema.safeParse(body);
   if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    if (firstIssue?.path.includes('password')) {
+      return NextResponse.json(
+        { error: { code: 'validation_error', message: firstIssue.message } },
+        { status: 422 },
+      );
+    }
     return NextResponse.json(GENERIC_INVALID_INVITE, { status: 400 });
   }
-  const { email, invite_code } = parsed.data;
+  const { email, password, invite_code } = parsed.data;
 
   const admin = createServiceClient();
+
+  // Validate + atomically consume the invite code
   const { data: validResult, error: validErr } = await admin.rpc('validate_invite_code', {
     p_code: invite_code,
   });
@@ -55,25 +65,26 @@ export async function POST(req: Request) {
     return NextResponse.json(GENERIC_INVALID_INVITE, { status: 400 });
   }
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-
-  const supabase = await createClient();
-  const { error: otpErr } = await supabase.auth.signInWithOtp({
+  // Create user — email_confirm: true bypasses confirmation email (beta path)
+  const { error: createErr } = await admin.auth.admin.createUser({
     email,
-    options: {
-      shouldCreateUser: true,
-      emailRedirectTo: `${appUrl}/auth/callback?invite=${invite_code}`,
-    },
+    password,
+    email_confirm: true,
   });
 
-  if (otpErr) {
+  if (createErr) {
+    const msg = createErr.message?.toLowerCase() ?? '';
+    if (msg.includes('already registered') || msg.includes('already exists') || (createErr as { status?: number }).status === 422) {
+      return NextResponse.json(
+        { error: { code: 'email_taken', message: 'An account with that email already exists.' } },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
-      { error: { code: 'server_error', message: 'Could not send magic link. Try again.' } },
+      { error: { code: 'server_error', message: 'Could not create account. Try again.' } },
       { status: 500 },
     );
   }
 
-  return NextResponse.json({ data: { sent: true } }, { status: 201 });
+  return NextResponse.json({ data: { created: true } }, { status: 201 });
 }

@@ -31,7 +31,8 @@ test('login page renders', async ({ page, viewport }) => {
   // shadcn CardTitle may not expose the "heading" role — match by text
   await expect(page.getByText(/log in to subtwo/i)).toBeVisible({ timeout: 8_000 });
   await expect(page.getByLabel(/email/i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /send magic link/i })).toBeVisible();
+  await expect(page.getByLabel(/password/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
 
   // No horizontal overflow at current viewport
   if (viewport) {
@@ -44,4 +45,5 @@ test('signup page renders', async ({ page }) => {
   await page.goto('/signup');
   await expect(page.getByText(/sign up to subtwo/i)).toBeVisible({ timeout: 8_000 });
   await expect(page.getByLabel(/invite code/i)).toBeVisible();
+  await expect(page.getByLabel(/^password$/i)).toBeVisible();
 });
