@@ -9,6 +9,18 @@ const SignupSchema = z.object({
   invite_code: z.string().regex(/^[A-Z0-9]{8}$/, 'Invalid code format'),
 });
 
+async function rollbackInviteCode(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  code: string,
+): Promise<void> {
+  try {
+    await admin.rpc('rollback_invite_code', { p_code: code });
+  } catch {
+    console.error(JSON.stringify({ event: 'signup.rollback_failed', code: code.slice(0, 4) }));
+  }
+}
+
 const GENERIC_INVALID_INVITE = {
   error: {
     code: 'invalid_invite',
@@ -61,7 +73,15 @@ export async function POST(req: Request) {
   const { data: validResult, error: validErr } = await admin.rpc('validate_invite_code', {
     p_code: invite_code,
   });
-  if (validErr || validResult !== true) {
+  if (validErr) {
+    console.error(JSON.stringify({ event: 'signup.rpc_error', code: invite_code.slice(0, 4), err: validErr.message }));
+    return NextResponse.json(
+      { error: { code: 'server_error', message: 'Could not verify invite code. Try again.' } },
+      { status: 500 },
+    );
+  }
+  if (validResult !== true) {
+    console.log(JSON.stringify({ event: 'signup.invalid_invite', code: invite_code.slice(0, 4) }));
     return NextResponse.json(GENERIC_INVALID_INVITE, { status: 400 });
   }
 
@@ -74,12 +94,23 @@ export async function POST(req: Request) {
 
   if (createErr) {
     const msg = createErr.message?.toLowerCase() ?? '';
-    if (msg.includes('already registered') || msg.includes('already exists') || (createErr as { status?: number }).status === 422) {
+    const isEmailTaken =
+      msg.includes('already registered') ||
+      msg.includes('already exists') ||
+      (createErr as { status?: number }).status === 422;
+
+    if (isEmailTaken) {
+      // Rollback: unconsume the invite code so the user can retry with a different email.
+      // Types lag the migration; cast required until types are regenerated post-deploy.
+      await rollbackInviteCode(admin, invite_code);
       return NextResponse.json(
         { error: { code: 'email_taken', message: 'An account with that email already exists.' } },
         { status: 409 },
       );
     }
+
+    console.error(JSON.stringify({ event: 'signup.create_user_error', err: createErr.message }));
+    await rollbackInviteCode(admin, invite_code);
     return NextResponse.json(
       { error: { code: 'server_error', message: 'Could not create account. Try again.' } },
       { status: 500 },

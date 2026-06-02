@@ -1,4 +1,21 @@
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+
+export type GenerateErrorType =
+  | 'timeout'
+  | 'rate_limit'
+  | 'quota'
+  | 'validation'
+  | 'auth'
+  | 'service'
+  | 'network';
+
+export type GenerateError = {
+  type: GenerateErrorType;
+  title: string;
+  message: string;
+  retryAfter?: number; // seconds
+};
+
 export type GoalType = 'specific' | 'ai_suggest';
 export type CanRun5K = 'yes' | 'sometimes' | 'no';
 export type LongRunDay = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Step1RaceBasics, validateStep1 } from '@/components/wizard/steps/step1-
 import { Step2AboutYou, validateStep2AboutYou } from '@/components/wizard/steps/step2-about-you';
 import { Step3OptionalExtras } from '@/components/wizard/steps/step3-optional-extras';
 import { Step7Generating } from '@/components/wizard/steps/step7-generating';
-import { type WizardFormData, INITIAL_FORM_DATA } from '@/components/wizard/wizard-types';
+import { type WizardFormData, INITIAL_FORM_DATA, type GenerateError } from '@/components/wizard/wizard-types';
 import { assembleWizardInput } from '@/components/wizard/assemble-wizard-input';
 import type { Provider } from '@/lib/ai/providers';
 
@@ -34,13 +34,78 @@ function isStepValid(step: number, data: WizardFormData): boolean {
   }
 }
 
+function classifyError(
+  status: number,
+  errorCode: string,
+  errorMsg: string,
+  retryAfterSecs?: number,
+): GenerateError {
+  if (status === 401 || status === 403) {
+    return {
+      type: 'auth',
+      title: 'Session expired',
+      message: 'Please log in again.',
+    };
+  }
+  if (status === 429) {
+    if (errorCode === 'quota_exhausted') {
+      return {
+        type: 'quota',
+        title: 'Generation limit reached',
+        message: errorMsg,
+      };
+    }
+    const timeStr = retryAfterSecs
+      ? ` Try again in ${retryAfterSecs < 60 ? `${retryAfterSecs}s` : `${Math.round(retryAfterSecs / 60)} min`}.`
+      : '';
+    return {
+      type: 'rate_limit',
+      title: 'Daily generation limit reached',
+      message: `You've used all 3 generations for today.${timeStr}`,
+      retryAfter: retryAfterSecs,
+    };
+  }
+  if (status === 400 || status === 422) {
+    return {
+      type: 'validation',
+      title: 'Invalid request',
+      message: errorMsg,
+    };
+  }
+  if (status === 504) {
+    return {
+      type: 'timeout',
+      title: 'Generation is taking longer than expected',
+      message: 'Plans usually take 20–40 seconds.',
+    };
+  }
+  if (status === 502 || status === 503) {
+    return {
+      type: 'service',
+      title: 'Service temporarily unavailable',
+      message: 'Our service is temporarily unavailable. Retry in a moment.',
+    };
+  }
+  // 500 or anything else
+  return {
+    type: 'service',
+    title: 'Something went wrong on our end',
+    message: 'Our service hit an unexpected error. Retry in a moment.',
+  };
+}
+
+const TRANSIENT_STATUSES = new Set([0, 502, 503, 504]);
+const AUTO_RETRY_DELAY = 3; // seconds
+
 export default function WizardPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<WizardFormData>(INITIAL_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<GenerateError | null>(null);
+  const [retryingIn, setRetryingIn] = useState(0);
   const [provider, setProvider] = useState<Provider>('claude');
+  const hasAutoRetried = useRef(false);
 
   const handleChange = useCallback((patch: Partial<WizardFormData>) => {
     setFormData((prev) => ({ ...prev, ...patch }));
@@ -64,17 +129,23 @@ export default function WizardPage() {
     await startGeneration();
   }
 
-  async function startGeneration() {
+  async function startGeneration(isAutoRetry = false) {
     setStep(4);
     setIsSubmitting(true);
     setSubmitError(null);
+    setRetryingIn(0);
 
     const assembled = assembleWizardInput(formData);
     if (!assembled.success) {
-      setSubmitError(assembled.error);
+      setSubmitError({ type: 'validation', title: 'Invalid input', message: assembled.error });
       setIsSubmitting(false);
       return;
     }
+
+    let status = 0;
+    let errorCode = '';
+    let errorMsg = '';
+    let retryAfterSecs: number | undefined;
 
     try {
       const res = await fetch('/api/plans/generate', {
@@ -83,32 +154,72 @@ export default function WizardPage() {
         body: JSON.stringify({ provider, ...assembled.data }),
       });
 
+      status = res.status;
+
       const json = (await res.json()) as {
         data?: { plan_id: string };
-        error?: { code: string; message: string };
+        error?: { code: string; message: string; retry_after?: number };
       };
 
       if (!res.ok) {
-        const code = json.error?.code ?? '';
-        const msg = json.error?.message ?? 'Generation failed. Please try again.';
-        setSubmitError(code === 'quota_exhausted' ? 'quota: ' + msg : msg);
-        setIsSubmitting(false);
+        errorCode = json.error?.code ?? '';
+        errorMsg = json.error?.message ?? 'Generation failed. Please try again.';
+        retryAfterSecs = json.error?.retry_after;
+      } else {
+        const planId = json.data?.plan_id;
+        if (!planId) {
+          setSubmitError({
+            type: 'service',
+            title: 'Unexpected response',
+            message: 'We got an unexpected response. Please try again.',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        router.push(`/onboarding/review?plan=${planId}`);
         return;
       }
-
-      const planId = json.data?.plan_id;
-      if (!planId) {
-        setSubmitError('Unexpected response. Please try again.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      router.push(`/onboarding/review?plan=${planId}`);
     } catch (err) {
       import('@sentry/nextjs').then(({ captureException }) => captureException(err));
-      setSubmitError('Network error. Check your connection and try again.');
-      setIsSubmitting(false);
+      status = 0;
+      errorMsg = "Couldn't reach SubTwo. Check your connection and retry.";
     }
+
+    const isTransient = TRANSIENT_STATUSES.has(status);
+
+    if (isTransient && !isAutoRetry && !hasAutoRetried.current) {
+      hasAutoRetried.current = true;
+      // Show the error type but with countdown — auto-retry once after 3s
+      const err = classifyError(status, errorCode, errorMsg, retryAfterSecs);
+      setSubmitError(err);
+      setIsSubmitting(false);
+
+      let count = AUTO_RETRY_DELAY;
+      setRetryingIn(count);
+      const timer = setInterval(() => {
+        count -= 1;
+        if (count <= 0) {
+          clearInterval(timer);
+          setRetryingIn(0);
+          void startGeneration(true);
+        } else {
+          setRetryingIn(count);
+        }
+      }, 1000);
+      return;
+    }
+
+    // Final error (either non-transient, or transient after auto-retry)
+    if (status === 0) {
+      setSubmitError({
+        type: 'network',
+        title: "Couldn't reach SubTwo",
+        message: "Check your connection and retry.",
+      });
+    } else {
+      setSubmitError(classifyError(status, errorCode, errorMsg, retryAfterSecs));
+    }
+    setIsSubmitting(false);
   }
 
   const canContinue = step < 4 && isStepValid(step, formData);
@@ -140,9 +251,12 @@ export default function WizardPage() {
             {step === 4 && (
               <Step7Generating
                 error={submitError}
+                retryingIn={retryingIn}
                 onRetry={() => {
+                  hasAutoRetried.current = false;
                   setStep(3);
                   setSubmitError(null);
+                  setRetryingIn(0);
                 }}
               />
             )}
