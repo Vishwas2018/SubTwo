@@ -5,7 +5,8 @@ import type { WizardInput } from '@/lib/schemas';
 import type { PlanProvider, ProviderOptions } from './index';
 
 // DashScope international OpenAI-compatible endpoint
-const QWEN_MODEL = 'qwen-plus';
+// qwen-turbo is significantly faster than qwen-plus for structured JSON output
+const QWEN_MODEL = 'qwen-turbo';
 const QWEN_ENDPOINT = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 const MAX_ATTEMPTS = 2;
 
