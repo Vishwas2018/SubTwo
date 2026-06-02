@@ -8,8 +8,15 @@ Generated: 2026-06-02T12:43:01.502Z
 
 https://subtwo.vercel.app/signup
 
+## Recommended provider
+
+Use **Groq** (free, ~8s) or **Qwen** (free, ~25s) when generating your plan.
+Claude is temporarily degraded (known issue, under investigation).
+
 ## Accounts
 
+| Email | Password | Invite code |
+|-------|----------|-------------|
 | beta01@subtwo.app | `Tr4#mNp8kQx!` | `IAZMWR9N` |
 | beta02@subtwo.app | `Rb7@vKj2nLs#` | `133YM0H0` |
 | beta03@subtwo.app | `Wx9!cFm4pZt$` | `8MEU9F4R` |
