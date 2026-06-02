@@ -4,9 +4,9 @@ import { extractJson, type GenerationResult } from '@/lib/ai/anthropic-client';
 import type { WizardInput } from '@/lib/schemas';
 import type { PlanProvider, ProviderOptions } from './index';
 
-// DashScope OpenAI-compatible endpoint
+// DashScope international OpenAI-compatible endpoint
 const QWEN_MODEL = 'qwen-plus';
-const QWEN_ENDPOINT = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+const QWEN_ENDPOINT = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 const MAX_ATTEMPTS = 2;
 
 type OpenAIResponse = {
