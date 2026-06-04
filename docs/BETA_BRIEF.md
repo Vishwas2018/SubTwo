@@ -1,7 +1,7 @@
 # SubTwo Beta Brief — Wave 1
 
-**Version:** beta-1.0  
-**Date:** 2026-05-30  
+**Version:** beta-1.1  
+**Date:** 2026-06-04 (updated from 2026-05-30)  
 **Audience:** Invited testers
 
 ---
@@ -62,11 +62,24 @@ For critical issues (login broken, data lost): email **vishwas.joshi01@gmail.com
 
 ---
 
+## AI Provider Status (as of 2026-06-04)
+
+| Provider | Status | Typical latency | Notes |
+|----------|--------|----------------|-------|
+| **Groq** (free) | ⚠️ Unreliable | 5–17 s | Free-tier burst limits cause intermittent stalls >60 s |
+| **Qwen** (free) | ✅ Working | 30–40 s | Use **Groq** if Qwen times out |
+| **Claude** (default) | ✅ Working | 20–50 s | Switched to claude-haiku-4-5-20251001 for speed |
+
+**Recommended provider:** Use **Groq** for fastest results; if it stalls, retry with **Qwen** or **Claude**.
+
+---
+
 ## Known Limitations
 
 - **No Android native app** — browser only (add to home screen for app-like feel)
-- **AI plan generation uses Claude** — takes 15–45s; please wait; do not refresh
-- **Multi-provider AI (Groq/Qwen)** — opt-in on wizard step 3; free tier, may be slower
+- **AI plan generation** — takes 20–50 s depending on provider; please wait; do not refresh
+- **Free providers (Groq/Qwen)** — opt-in on wizard step 3; free tier, may be slower or stall
+- **If generation fails** — tap "Try again" or switch provider in Settings → Profile → Start over
 - **Check-in route `/check-in` still exists** — the dashboard inline card is the primary path
 - **No push notifications** — check the app daily
 

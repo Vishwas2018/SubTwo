@@ -249,6 +249,7 @@ export function validatePaceConsistency(sessions: PlannedSession[]): ValidationI
 export function validateDistanceBounds(sessions: PlannedSession[]): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const byWeek = groupByWeek(sessions);
+  const maxWeek = sessions.length > 0 ? Math.max(...sessions.map((s) => s.week_number)) : 0;
 
   for (const [week, weekSessions] of byWeek) {
     for (const s of weekSessions) {
@@ -264,9 +265,12 @@ export function validateDistanceBounds(sessions: PlannedSession[]): ValidationIs
 
     const totalKm = weeklyKm(weekSessions);
     const hasRunningSessions = weekSessions.some((s) => s.session_type !== 'rest');
+    // Final (taper/race) week is exempt from WEEKLY_MIN_KM: it is already constrained by
+    // the ≤50%-of-peak taper rule; forcing it above 10 km conflicts with valid low-volume plans.
+    const isFinalWeek = week === maxWeek;
 
     if (hasRunningSessions) {
-      if (totalKm < WEEKLY_MIN_KM) {
+      if (totalKm < WEEKLY_MIN_KM && !isFinalWeek) {
         issues.push({
           rule: 'distance_bounds',
           severity: 'error',

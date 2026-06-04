@@ -21,12 +21,15 @@ import type { WizardInput } from '@/lib/schemas';
 
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 
-export const SONNET_PRICING = { input_per_mtok: 3, output_per_mtok: 15 } as const;
+// claude-haiku-4-5-20251001 pricing (TD-015 paid: was incorrectly using Sonnet rates)
+export const CLAUDE_PRICING = { input_per_mtok: 0.80, output_per_mtok: 4.0 } as const;
+// Keep alias so any external callers don't break while we phase out the name.
+export const SONNET_PRICING = CLAUDE_PRICING;
 
 export function estimateCost(inputTokens: number, outputTokens: number): number {
   return (
-    (inputTokens / 1_000_000) * SONNET_PRICING.input_per_mtok +
-    (outputTokens / 1_000_000) * SONNET_PRICING.output_per_mtok
+    (inputTokens / 1_000_000) * CLAUDE_PRICING.input_per_mtok +
+    (outputTokens / 1_000_000) * CLAUDE_PRICING.output_per_mtok
   );
 }
 
@@ -124,12 +127,22 @@ async function generatePlanSingle(input: WizardInput, ctx: InternalCtx): Promise
     { role: 'user', content: buildUserPrompt(input) },
   ];
 
+  // Track the last validation failure so the budget-gate return path surfaces a real error.
+  let lastError = 'All attempts exhausted';
+  let lastStage: 'api' | 'json_parse' | 'schema' | 'business_rules' = 'api';
+
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-    // Budget gate: don't start a retry if less than MIN_RETRY_BUDGET_MS remains in the
-    // total sdkTimeout window. This prevents cascading retries from blowing Vercel's 60s
-    // maxDuration ceiling while still allowing one retry when there is budget to spare.
+    // Budget gate: don't start a retry if less than MIN_RETRY_BUDGET_MS remains.
+    // Return the last known failure instead of throwing, so callers get a real error message.
     if (attempt > 1 && sdkTimeout - (Date.now() - start) < MIN_RETRY_BUDGET_MS) {
-      break; // fall through to unreachable — loop exits, throw below
+      return {
+        success: false,
+        error: lastError,
+        stage: lastStage,
+        durationMs: Date.now() - start,
+        attempts: attempt - 1,
+        metadata: { strategy: 'single', batches: 0, total_attempts: attempt - 1 },
+      };
     }
     let rawText: string;
     try {
@@ -158,20 +171,22 @@ async function generatePlanSingle(input: WizardInput, ctx: InternalCtx): Promise
     try {
       parsed = extractJson(rawText);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       if (attempt > maxRetries) {
         return {
           success: false,
-          error: err instanceof Error ? err.message : String(err),
+          error: msg,
           stage: 'json_parse',
           durationMs: Date.now() - start,
           attempts: attempt,
           metadata: { strategy: 'single', batches: 0, total_attempts: attempt },
         };
       }
+      lastError = msg; lastStage = 'json_parse';
       messages.push({ role: 'assistant', content: rawText });
       messages.push({
         role: 'user',
-        content: `Previous output failed JSON parsing: ${err instanceof Error ? err.message : String(err)}. Return corrected JSON only.`,
+        content: `Previous output failed JSON parsing: ${msg}. Return corrected JSON only.`,
       });
       continue;
     }
@@ -189,6 +204,7 @@ async function generatePlanSingle(input: WizardInput, ctx: InternalCtx): Promise
           metadata: { strategy: 'single', batches: 0, total_attempts: attempt },
         };
       }
+      lastError = errorMsg; lastStage = 'schema';
       messages.push({ role: 'assistant', content: rawText });
       messages.push({
         role: 'user',
@@ -214,6 +230,7 @@ async function generatePlanSingle(input: WizardInput, ctx: InternalCtx): Promise
           metadata: { strategy: 'single', batches: 0, total_attempts: attempt },
         };
       }
+      lastError = errorMsg; lastStage = 'business_rules';
       messages.push({ role: 'assistant', content: rawText });
       messages.push({
         role: 'user',
@@ -232,8 +249,15 @@ async function generatePlanSingle(input: WizardInput, ctx: InternalCtx): Promise
     };
   }
 
-  /* v8 ignore next 2 */
-  throw new Error('unreachable');
+  // Safety net — should only be reached if maxRetries=0 and the single attempt failed above.
+  return {
+    success: false,
+    error: lastError,
+    stage: lastStage,
+    durationMs: Date.now() - start,
+    attempts: maxRetries + 1,
+    metadata: { strategy: 'single', batches: 0, total_attempts: maxRetries + 1 },
+  };
 }
 
 // ─── Batch path (>12 weeks) ───────────────────────────────────────────────────
@@ -434,12 +458,29 @@ async function fetchWeekBatch(
   throw new Error('unreachable');
 }
 
+// Minimum ms needed before starting a new phase/batch (skeleton + one API round-trip).
+const BATCH_MIN_REMAINING_MS = 12_000;
+
 async function generatePlanBatch(input: WizardInput, ctx: InternalCtx): Promise<GenerationResult> {
-  const { start } = ctx;
+  const { start, sdkTimeout } = ctx;
   const usage = { input_tokens: 0, output_tokens: 0 };
   let totalAttempts = 0;
 
-  // Phase A: skeleton
+  function remainingMs(): number {
+    return sdkTimeout - (Date.now() - start);
+  }
+
+  // Phase A: skeleton — bail out if we don't have enough budget left.
+  if (remainingMs() < BATCH_MIN_REMAINING_MS) {
+    return {
+      success: false,
+      error: `Batch generation timed out before skeleton call (remaining: ${remainingMs()}ms)`,
+      stage: 'api',
+      durationMs: Date.now() - start,
+      attempts: 0,
+      metadata: { strategy: 'batch', batches: 0, total_attempts: 0 },
+    };
+  }
   const skeletonFetch = await fetchSkeleton(input, ctx, usage);
   totalAttempts += skeletonFetch.attempts;
   if (!skeletonFetch.ok) {
@@ -451,6 +492,18 @@ async function generatePlanBatch(input: WizardInput, ctx: InternalCtx): Promise<
   // Phase B: session batches (sequential)
   const allWeeks: GeneratedPlan['weeks'] = [];
   for (let b = 0; b < numBatches; b++) {
+    // Guard: bail early if we're running out of budget so the DB-log step can still run.
+    if (remainingMs() < BATCH_MIN_REMAINING_MS) {
+      return {
+        success: false,
+        error: `Batch generation timed out at batch ${b + 1} of ${numBatches} (remaining: ${remainingMs()}ms)`,
+        stage: 'api',
+        durationMs: Date.now() - start,
+        attempts: totalAttempts,
+        metadata: { strategy: 'batch', batches: b, total_attempts: totalAttempts },
+      };
+    }
+
     const batchStart = b * BATCH_SIZE + 1;
     const batchEnd = Math.min((b + 1) * BATCH_SIZE, skeleton.total_weeks);
     const priorWeekKm = allWeeks.length > 0 ? allWeeks[allWeeks.length - 1]!.total_km : null;

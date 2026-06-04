@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { WizardInputSchema } from '@/lib/schemas';
-import { estimateCost } from '@/lib/ai/anthropic-client';
+import { estimateCost, type GenerationResult } from '@/lib/ai/anthropic-client';
 import { checkBudget, maybySendBudgetAlert } from '@/lib/ai/budget';
 import { persistGeneratedPlan } from '@/lib/plans/persist';
 import { rateLimit } from '@/lib/rate-limit';
@@ -156,14 +156,48 @@ export async function POST(req: Request) {
     level: 'info',
   });
 
-  // 7. Generate plan — try requested provider, fall back to Claude on failure
+  // 7. Generate plan — try requested provider, fall back to Claude (Haiku) on failure.
+  //
+  // Budget math (Vercel Hobby maxDuration = 60 s):
+  //   pre-AI overhead         ≤  5 s
+  //   free provider primary   ≤ 35 s  → fallback headroom ≈ 17 s
+  //   Claude primary          ≤ 50 s  → no fallback needed; full budget for single/batch path
+  //   fallback (Haiku)        ≤ 17 s  (dynamic; capped so DB + persist fit in remaining time)
+  //   DB + persist            ≤  3 s
+  // Worst-case free path: 5 + 35 + 17 + 3 = 60 s  ✓
+  // Worst-case Claude path: 5 + 50 + 5 = 60 s  ✓
+  //
+  // Both provider calls are wrapped in try/catch so an unexpected throw produces a
+  // structured failure rather than propagating past the DB-log step.
   const elapsed = t6 - t0;
-  const sdkTimeout = Math.max(10_000, 55_000 - elapsed);
+  // Groq: 35s (fast when healthy; leaves headroom for Haiku fallback on schema failures)
+  // Qwen: 40s (slower model; needs the extra 5s; fallback budget is minimal but still logged)
+  // Claude: 50s (full budget; no fallback)
+  const PRIMARY_BUDGET_MS =
+    requestedProvider === 'claude' ? 50_000 :
+    requestedProvider === 'qwen'   ? 40_000 :
+    35_000; // groq
+  const sdkTimeout = Math.max(10_000, PRIMARY_BUDGET_MS - elapsed);
 
-  let result = await (await getProvider(requestedProvider)).generatePlan(wizardInput, { timeout: sdkTimeout });
+  let result: GenerationResult;
+  try {
+    result = await (await getProvider(requestedProvider)).generatePlan(wizardInput, { timeout: sdkTimeout });
+  } catch (err) {
+    // Defensive: providers return success:false on errors; this catch handles unexpected throws.
+    result = {
+      success: false,
+      error: `Unexpected provider error: ${err instanceof Error ? err.message : String(err)}`,
+      stage: 'api',
+      durationMs: Date.now() - t6,
+      attempts: 1,
+      metadata: { strategy: 'single', batches: 0, total_attempts: 1 },
+    };
+  }
   let actualProvider: Provider = requestedProvider;
 
-  // Fallback to Claude if free provider failed
+  // Fallback to Claude (Haiku) if free provider failed.
+  // This also fires when the free provider's AbortController fires at sdkTimeout (it returns
+  // success:false with stage:'api'), ensuring the fallback runs while ≥ 13 s remain.
   if (!result.success && isFreeProvider(requestedProvider)) {
     console.log(
       JSON.stringify({
@@ -181,8 +215,20 @@ export async function POST(req: Request) {
       level: 'warning',
     });
     const fallbackElapsed = Date.now() - t0;
-    const fallbackTimeout = Math.max(10_000, 55_000 - fallbackElapsed);
-    result = await (await getProvider('claude')).generatePlan(wizardInput, { timeout: fallbackTimeout });
+    // Reserve budget up to 17 s so Haiku can generate a short plan; never below 10 s.
+    const fallbackTimeout = Math.max(10_000, Math.min(17_000, 55_000 - fallbackElapsed));
+    try {
+      result = await (await getProvider('claude')).generatePlan(wizardInput, { timeout: fallbackTimeout });
+    } catch (err) {
+      result = {
+        success: false,
+        error: `Fallback provider error: ${err instanceof Error ? err.message : String(err)}`,
+        stage: 'api',
+        durationMs: Date.now() - t6,
+        attempts: 1,
+        metadata: { strategy: 'single', batches: 0, total_attempts: 1 },
+      };
+    }
     actualProvider = 'claude';
   }
 
@@ -222,7 +268,7 @@ export async function POST(req: Request) {
       ? (process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6')
       : actualProvider === 'groq'
       ? 'llama-3.3-70b-versatile'
-      : 'qwen-plus';
+      : 'qwen-turbo';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const genInsert: any = {

@@ -1,14 +1,17 @@
-import { SYSTEM_PROMPT, buildUserPrompt, MAX_OUTPUT_TOKENS } from '@/lib/ai/prompt-builder';
+import { SYSTEM_PROMPT, buildUserPrompt } from '@/lib/ai/prompt-builder';
 import { GeneratedPlanSchema } from '@/lib/schemas/plan';
 import { extractJson, type GenerationResult } from '@/lib/ai/anthropic-client';
 import type { WizardInput } from '@/lib/schemas';
 import type { PlanProvider, ProviderOptions } from './index';
 
 // DashScope international OpenAI-compatible endpoint
-// qwen-turbo is significantly faster than qwen-plus for structured JSON output
+// qwen-turbo: fastest free model; cap output at 4096 to keep total round-trip < 45s on Vercel Hobby.
+// If latency regresses further, drop QWEN entirely and rely on Groq/Claude (see TD-019).
 const QWEN_MODEL = 'qwen-turbo';
 const QWEN_ENDPOINT = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 const MAX_ATTEMPTS = 2;
+// 4096 keeps JSON output under ~30s for typical 12-wk plans; halved from 8192 to reduce latency.
+const QWEN_MAX_OUTPUT_TOKENS = 4_096;
 
 type OpenAIResponse = {
   choices: Array<{ message: { content: string } }>;
@@ -35,7 +38,7 @@ async function callQwen(
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: MAX_OUTPUT_TOKENS,
+        max_tokens: QWEN_MAX_OUTPUT_TOKENS,
       }),
       signal: controller.signal,
     });

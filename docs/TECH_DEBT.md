@@ -24,7 +24,7 @@
 | TD-008 | OAuth tokens stored as plain TEXT, not encrypted           | Medium   | Supabase Vault requires Phase 3 setup; no integrations active in Phase 1 | Phase 3 (before P5-01 Strava OAuth)                 |
 | TD-010 | ai-live.test.ts hangs in vitest worker (corporate proxy; `--use-system-ca` not inherited by worker subprocess); live gate via `scripts/live-test.ts` | Low | CA not in Node bundle; CI unaffected (API key absent → skip); env-only limitation | ⚪ WONTFIX — corporate proxy; gate proven via scripts/live-test.ts |
 | TD-012 | CSP uses 'unsafe-inline' (weakens XSS protection) | Medium | Nonce infra requires proxy/middleware refactor, forces dynamic rendering | Before public launch |
-| TD-015 | `SONNET_PRICING` constant used for cost logging regardless of model; incorrect for Haiku | Low | ANTHROPIC_MODEL changed to Haiku Day 25 but pricing const not updated; low $ impact now | Phase 5 — fix when model changes or cost reporting matters |
+| TD-019 | Qwen (qwen-turbo via DashScope intl) requires Vercel Pro for reliable sub-60s generation | Medium | DashScope intl endpoint latency from Vercel syd1 spikes to >60s; capped output tokens at 4096 as mitigation; structural fix is Vercel Pro (longer function timeout) or swap to Groq-hosted Qwen model | Before enabling Qwen in production marketing |
 ---
 
 ## Paid
@@ -35,6 +35,7 @@
 | TD-011 | Single-call plan generation; batch architecture needed for plans >20 weeks (token budget exceeded, requires 2-3 retries) | High | Day 16 (commit b67067e) — two-phase batch generation; routing ≤12wk single / >12wk batch; live-verified 19-week plan |
 | TD-013 | 2 cron integration tests skipped (need BASE_URL env in test) | Low | Day 23 — replaced HTTP tests with direct handler unit tests in `tests/unit/cron/cron-auth.test.ts`; 3 unit tests run in CI without a live server; HTTP integration tests remain skipped (Vercel env vars unset) |
 | TD-014 | Vercel deployment missing all env vars — app returned 500 for all requests | High | Day 25 — 6 boot-required vars set in Vercel dashboard; prod smoke `/ + /login → 200`; cron auth: `401 without secret, 200 with` ✓ |
+| TD-015 | `SONNET_PRICING` constant used for cost logging regardless of model; incorrect for Haiku | Low | Beta QA Day — renamed to `CLAUDE_PRICING`, updated to Haiku 4.5 rates ($0.80/$4 per MTok); `SONNET_PRICING` kept as alias |
 
 ---
 
