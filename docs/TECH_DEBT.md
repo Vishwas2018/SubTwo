@@ -25,6 +25,7 @@
 | TD-010 | ai-live.test.ts hangs in vitest worker (corporate proxy; `--use-system-ca` not inherited by worker subprocess); live gate via `scripts/live-test.ts` | Low | CA not in Node bundle; CI unaffected (API key absent → skip); env-only limitation | ⚪ WONTFIX — corporate proxy; gate proven via scripts/live-test.ts |
 | TD-012 | CSP uses 'unsafe-inline' (weakens XSS protection) | Medium | Nonce infra requires proxy/middleware refactor, forces dynamic rendering | Before public launch |
 | TD-019 | Qwen (qwen-turbo via DashScope intl) requires Vercel Pro for reliable sub-60s generation | Medium | DashScope intl endpoint latency from Vercel syd1 spikes to >60s; capped output tokens at 4096 as mitigation; structural fix is Vercel Pro (longer function timeout) or swap to Groq-hosted Qwen model | Before enabling Qwen in production marketing |
+| TD-020 | Groq hidden from beta wizard dropdown due to free-tier upstream instability | Medium | llama-3.3-70b-versatile on Groq free tier stalls unpredictably, causing Vercel 504s; adapter + GROQ_API_KEY intact; re-enable `PROVIDER_OPTIONS` entry in `app/onboarding/wizard/page.tsx` when Groq free-tier reliability improves | Post-beta when Groq confirms stable throughput |
 ---
 
 ## Paid

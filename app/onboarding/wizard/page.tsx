@@ -16,13 +16,14 @@ import type { Provider } from '@/lib/ai/providers';
 // Step 4 = Generating (previously Step 7)
 const TOTAL_STEPS = 4;
 
+// Groq omitted for beta: free-tier upstream reliability too low (TD-020).
+// Adapter + API key are intact; re-enable when Groq free-tier stabilises.
 const PROVIDER_OPTIONS: {
   value: Provider;
   label: string;
   free: boolean;
 }[] = [
   { value: 'claude', label: 'Claude — premium quality (default)', free: false },
-  { value: 'groq',   label: 'Groq — free, fast',                  free: true  },
   { value: 'qwen',   label: 'Qwen — free',                        free: true  },
 ];
 

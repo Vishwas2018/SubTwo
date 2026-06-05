@@ -62,15 +62,15 @@ For critical issues (login broken, data lost): email **vishwas.joshi01@gmail.com
 
 ---
 
-## AI Provider Status (as of 2026-06-04)
+## AI Provider Status (as of 2026-06-05)
 
-| Provider | Status | Typical latency | Notes |
-|----------|--------|----------------|-------|
-| **Groq** (free) | ⚠️ Unreliable | 5–17 s | Free-tier burst limits cause intermittent stalls >60 s |
-| **Qwen** (free) | ✅ Working | 30–40 s | Use **Groq** if Qwen times out |
-| **Claude** (default) | ✅ Working | 20–50 s | Switched to claude-haiku-4-5-20251001 for speed |
+| Provider | Available in wizard | Typical latency | Notes |
+|----------|-------------------|----------------|-------|
+| **Claude** (default) | ✅ Yes | 20–35 s | claude-haiku-4-5-20251001; premium quality |
+| **Qwen** (free) | ✅ Yes | 30–40 s | qwen-turbo; free tier, good quality |
+| ~~Groq~~ | ❌ Hidden | — | Disabled for beta — free-tier instability (TD-020) |
 
-**Recommended provider:** Use **Groq** for fastest results; if it stalls, retry with **Qwen** or **Claude**.
+**Recommended:** Start with **Claude** (default). Switch to **Qwen** to save your daily Claude quota.
 
 ---
 
@@ -78,7 +78,7 @@ For critical issues (login broken, data lost): email **vishwas.joshi01@gmail.com
 
 - **No Android native app** — browser only (add to home screen for app-like feel)
 - **AI plan generation** — takes 20–50 s depending on provider; please wait; do not refresh
-- **Free providers (Groq/Qwen)** — opt-in on wizard step 3; free tier, may be slower or stall
+- **Qwen (free provider)** — opt-in on wizard step 3; free tier, may be slower
 - **If generation fails** — tap "Try again" or switch provider in Settings → Profile → Start over
 - **Check-in route `/check-in` still exists** — the dashboard inline card is the primary path
 - **No push notifications** — check the app daily
