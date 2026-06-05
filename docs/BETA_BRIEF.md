@@ -1,7 +1,7 @@
 # SubTwo Beta Brief — Wave 1
 
-**Version:** beta-1.1  
-**Date:** 2026-06-04 (updated from 2026-05-30)  
+**Version:** beta-1.2  
+**Date:** 2026-06-05 (updated from 2026-06-04)  
 **Audience:** Invited testers
 
 ---
@@ -66,20 +66,19 @@ For critical issues (login broken, data lost): email **vishwas.joshi01@gmail.com
 
 | Provider | Available in wizard | Typical latency | Notes |
 |----------|-------------------|----------------|-------|
-| **Claude** (default) | ✅ Yes | 20–35 s | claude-haiku-4-5-20251001; premium quality |
-| **Qwen** (free) | ✅ Yes | 30–40 s | qwen-turbo; free tier, good quality |
+| **Qwen** (default) | ✅ Yes | 30–40 s | qwen-turbo; free tier |
+| ~~Claude~~ | ❌ Hidden | — | Disabled for beta — volume-cap compliance too low (TD-021) |
 | ~~Groq~~ | ❌ Hidden | — | Disabled for beta — free-tier instability (TD-020) |
 
-**Recommended:** Start with **Claude** (default). Switch to **Qwen** to save your daily Claude quota.
+**Single provider for Wave 1:** Qwen (qwen-turbo). Claude adapter remains active as the fallback on schema failure.
 
 ---
 
 ## Known Limitations
 
 - **No Android native app** — browser only (add to home screen for app-like feel)
-- **AI plan generation** — takes 20–50 s depending on provider; please wait; do not refresh
-- **Qwen (free provider)** — opt-in on wizard step 3; free tier, may be slower
-- **If generation fails** — tap "Try again" or switch provider in Settings → Profile → Start over
+- **AI plan generation** — takes 30–45 s; please wait; do not refresh
+- **If generation fails** — tap "Try again" or use Settings → Profile → Start over
 - **Check-in route `/check-in` still exists** — the dashboard inline card is the primary path
 - **No push notifications** — check the app daily
 

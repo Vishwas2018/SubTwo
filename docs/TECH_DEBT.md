@@ -26,6 +26,7 @@
 | TD-012 | CSP uses 'unsafe-inline' (weakens XSS protection) | Medium | Nonce infra requires proxy/middleware refactor, forces dynamic rendering | Before public launch |
 | TD-019 | Qwen (qwen-turbo via DashScope intl) requires Vercel Pro for reliable sub-60s generation | Medium | DashScope intl endpoint latency from Vercel syd1 spikes to >60s; capped output tokens at 4096 as mitigation; structural fix is Vercel Pro (longer function timeout) or swap to Groq-hosted Qwen model | Before enabling Qwen in production marketing |
 | TD-020 | Groq hidden from beta wizard dropdown due to free-tier upstream instability | Medium | llama-3.3-70b-versatile on Groq free tier stalls unpredictably, causing Vercel 504s; adapter + GROQ_API_KEY intact; re-enable `PROVIDER_OPTIONS` entry in `app/onboarding/wizard/page.tsx` when Groq free-tier reliability improves | Post-beta when Groq confirms stable throughput |
+| TD-021 | Claude (Haiku) hidden from beta wizard dropdown: ~25% pass rate on 10% weekly volume-cap rule | High | claude-haiku-4-5-20251001 consistently generates Week 2–3 jumps of 25–30% despite VERIFY instruction in prompt; 4/5 smoke attempts failed; adapter + ANTHROPIC_API_KEY intact (still used as Qwen fallback); re-enable in `PROVIDER_OPTIONS` in `app/onboarding/wizard/page.tsx` after prompt/validator fix achieves ≥80% pass rate in smoke tests | Before re-enabling Claude as primary provider |
 ---
 
 ## Paid

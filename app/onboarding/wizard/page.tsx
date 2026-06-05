@@ -16,15 +16,16 @@ import type { Provider } from '@/lib/ai/providers';
 // Step 4 = Generating (previously Step 7)
 const TOTAL_STEPS = 4;
 
-// Groq omitted for beta: free-tier upstream reliability too low (TD-020).
-// Adapter + API key are intact; re-enable when Groq free-tier stabilises.
+// Claude omitted for beta: Haiku ~25% pass rate on 10% volume-cap rule (TD-021).
+// Adapter + ANTHROPIC_API_KEY intact; still used as fallback on Qwen schema failure.
+// Re-enable after prompt/validator fix confirmed ≥80% pass rate.
+// Groq also omitted (TD-020): free-tier upstream reliability too low.
 const PROVIDER_OPTIONS: {
   value: Provider;
   label: string;
   free: boolean;
 }[] = [
-  { value: 'claude', label: 'Claude — premium quality (default)', free: false },
-  { value: 'qwen',   label: 'Qwen — free',                        free: true  },
+  { value: 'qwen', label: 'Qwen — AI plan generator', free: true },
 ];
 
 function isStepValid(step: number, data: WizardFormData): boolean {
@@ -106,7 +107,7 @@ export default function WizardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<GenerateError | null>(null);
   const [retryingIn, setRetryingIn] = useState(0);
-  const [provider, setProvider] = useState<Provider>('claude');
+  const [provider, setProvider] = useState<Provider>('qwen');
   const hasAutoRetried = useRef(false);
 
   const handleChange = useCallback((patch: Partial<WizardFormData>) => {
